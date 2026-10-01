@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="console" data-page="dashboard">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div>
+        <h1 id="greeting">Good morning, Rajesh</h1>
+        <div class="sub">Here's how Shree Estates is doing. <span class="badge badge-brand">Owner view — all 6 team members</span></div>
+      </div>
+      <div class="row wrap" style="gap:8px">
+        <select class="select" style="width:auto" id="fYear"><option>FY 2026-27</option><option>FY 2025-26</option></select>
+        <select class="select" style="width:auto" id="fMonth">
+          <option>Last 6 months</option><option>September 2026</option><option>August 2026</option><option>This quarter</option>
+        </select>
+        <select class="select" style="width:auto" id="fRegion"><option>All regions</option><option>Mumbai West</option><option>Thane</option><option>Pune</option></select>
+        <select class="select" style="width:auto" id="fMember"><option>All team members</option></select>
+      </div>
+    </div>
+
+    <div class="grid g-kpi" style="margin-bottom:16px" id="kpis"></div>
+
+    <!-- AI insights -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <h3>✨ What the AI noticed</h3>
+        <a class="btn btn-sm" href="ai.html">Ask a question →</a>
+      </div>
+      <div class="card-body grid g-2" id="insights" style="gap:12px"></div>
+    </div>
+
+    <div class="split" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head"><h3>Brokerage earned by month</h3><span class="badge badge-outline">Apr – Sep 2026</span></div>
+        <div class="card-body"><div id="chartBrokerage"></div></div>
+        <div class="card-foot small sec">September includes ₹27.75 L from a single BKC deal — approved, but not yet received.</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Lead pipeline</h3><span class="badge badge-outline">September 2026</span></div>
+        <div class="card-body"><div id="chartFunnel"></div></div>
+        <div class="card-foot small sec">Lead → Won conversion <b>5.4%</b>. Biggest drop-off is Qualified → Property Shared.</div>
+      </div>
+    </div>
+
+    <div class="split" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head"><h3>Leads vs deals closed</h3></div>
+        <div class="card-body"><div id="chartTrend"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Team leaderboard</h3><a class="btn btn-sm btn-ghost" href="team.html">Team →</a></div>
+        <div class="card-body"><div id="chartTeam"></div></div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="card-head"><h3>Recent deals</h3><a class="btn btn-sm btn-ghost" href="commissions.html">All deals →</a></div>
+        <div class="table-wrap">
+          <table class="tbl" id="dealTable"></table>
+        </div>
+      </div>
+
+      <div class="stack" style="gap:16px">
+        <div class="card">
+          <div class="card-head"><h3>Follow-ups due</h3><a class="btn btn-sm btn-ghost" href="leads.html">Leads →</a></div>
+          <div class="card-body" id="followups" style="padding:8px 0"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Region performance</h3></div>
+          <div class="table-wrap"><table class="tbl" id="regionTable"></table></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+/* Guard: a member landing here gets bounced, the way the real route would */
+if (!isAdmin()) location.replace("member.html");
+
+document.getElementById("greeting").textContent = "Good morning, " + me().name.split(" ")[0];
+document.getElementById("fMember").innerHTML =
+  '<option>All team members</option>' + DEMO.people.filter(p => p.role === "member").map(p => `<option>${p.name}</option>`).join("");
+
+/* ---- KPIs ---- */
+const outstanding = DEMO.deals.flatMap(d => d.splits).filter(s => s.status !== "paid").reduce((a, s) => a + s.amt, 0);
+const sep = DEMO.monthly[DEMO.monthly.length - 1], aug = DEMO.monthly[DEMO.monthly.length - 2];
+const openLeads = DEMO.leads.filter(l => !l.stage.startsWith("closed")).length;
+const kpis = [
+  { l: "Brokerage — September", v: fmtINR(sep.brokerage), f: `vs ${fmtINR(aug.brokerage)} in August` },
+  { l: "Deals closed", v: sep.closed, f: `<span class="delta-up">▲ ${sep.closed - aug.closed}</span> vs August` },
+  { l: "New leads", v: sep.leads, f: `<span class="delta-up">▲ 10%</span> · ${(sep.closed / sep.leads * 100).toFixed(1)}% convert` },
+  { l: "Pipeline value", v: fmtINR(412000000), f: `${openLeads} open leads across 3 regions` },
+  { l: "Commission outstanding", v: fmtINR(outstanding), f: '<span class="delta-down">4 deals</span> not fully settled' },
+  { l: "Live listings", v: DEMO.properties.length, f: "5 live over 90 days" }
+];
+document.getElementById("kpis").innerHTML = kpis.map(k =>
+  `<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-foot">${k.f}</div></div>`).join("");
+
+/* ---- Insights ---- */
+const toneIco = { good: "▲", warn: "!", critical: "!", info: "i" };
+document.getElementById("insights").innerHTML = DEMO.insights.map(i =>
+  `<div class="insight ${i.tone}">
+     <span class="ico">${toneIco[i.tone]}</span>
+     <div class="grow"><h4>${i.title}</h4><p>${i.body}</p>
+       <a class="btn btn-sm btn-ghost" style="padding-left:0" href="ai.html">${i.cta} →</a></div>
+   </div>`).join("");
+
+/* ---- Charts ---- */
+barChart(document.getElementById("chartBrokerage"),
+  DEMO.monthly.map(m => ({ k: m.m, v: m.brokerage })),
+  { valueFmt: v => fmtINR(v) });
+
+funnelChart(document.getElementById("chartFunnel"), DEMO.funnel);
+
+lineChart(document.getElementById("chartTrend"),
+  DEMO.monthly.map(m => m.m),
+  [
+    { name: "New leads",    values: DEMO.monthly.map(m => m.leads),  color: "var(--series-1)" },
+    { name: "Deals closed", values: DEMO.monthly.map(m => m.closed), color: "var(--series-2)" }
+  ]);
+
+hbarChart(document.getElementById("chartTeam"),
+  DEMO.leaderboard.map(p => ({ k: p.name, v: p.earned, avatar: avatar(p.id, "avatar-sm"), sub: `${p.deals} deals · ${p.conv}% conversion` })),
+  { valueFmt: v => fmtINR(v) });
+
+/* ---- Recent deals ---- */
+document.getElementById("dealTable").innerHTML = `
+  <thead><tr><th>Deal</th><th>Property</th><th class="r">Value</th><th class="r">Brokerage</th><th>Closed by</th><th>Stage</th></tr></thead>
+  <tbody>${DEMO.deals.slice(0, 5).map(d => `
+    <tr>
+      <td><a href="commissions.html">${d.id}</a><div class="tiny muted">${esc(d.leadName)}</div></td>
+      <td class="small">${esc(d.property)}</td>
+      <td class="r num">${fmtINR(d.value)}</td>
+      <td class="r num bold">${fmtINR(d.brokerage)}</td>
+      <td>${avatar(d.closedBy, "avatar-sm")}</td>
+      <td><span class="badge ${d.stage === "registered" ? "badge-good" : "badge-warn"}">${d.stage}</span></td>
+    </tr>`).join("")}</tbody>`;
+
+/* ---- Follow-ups ---- */
+const due = DEMO.leads.filter(l => l.next).sort((a, b) => a.next.localeCompare(b.next)).slice(0, 6);
+document.getElementById("followups").innerHTML = due.map(l => `
+  <div class="row" style="padding:9px 18px;border-bottom:1px solid var(--border)">
+    ${avatar(l.owner, "avatar-sm")}
+    <div class="stack grow">
+      <span class="small bold">${esc(l.name)}</span>
+      <span class="tiny muted">${esc(l.config)} · ${esc(l.locality)} · ${esc(l.budget)}</span>
+    </div>
+    <span class="badge prio-${l.priority}">${l.priority}</span>
+    <span class="tiny muted nowrap">${fmtTime(l.next).replace(", ", " · ")}</span>
+  </div>`).join("");
+
+/* ---- Regions ---- */
+document.getElementById("regionTable").innerHTML = `
+  <thead><tr><th>Region</th><th class="r">Leads</th><th class="r">Deals</th><th class="r">Brokerage</th></tr></thead>
+  <tbody>${DEMO.regionPerf.map(r => `
+    <tr><td class="bold small">${r.region}</td><td class="r num">${r.leads}</td>
+    <td class="r num">${r.deals}</td><td class="r num">${fmtINR(r.brokerage)}</td></tr>`).join("")}</tbody>`;
+</script>
+</body>
+</html>

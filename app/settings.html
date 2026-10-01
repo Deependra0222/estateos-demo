@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+<style>
+  .swatchrow { display:flex; gap:8px; flex-wrap:wrap; }
+  .sw { width:30px; height:30px; border-radius:8px; cursor:pointer; border:2px solid transparent; }
+  .sw.on { border-color:var(--text-primary); }
+  .toggle { width:40px; height:22px; border-radius:11px; background:var(--border-strong); position:relative;
+            cursor:pointer; flex:none; transition:background .15s; border:none; }
+  .toggle::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
+                   background:#fff; transition:transform .15s; }
+  .toggle.on { background:var(--brand-600); }
+  .toggle.on::after { transform:translateX(18px); }
+  .setrow { display:flex; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--border); }
+  .setrow:last-child { border-bottom:none; }
+  .sortable { display:flex; align-items:center; gap:9px; padding:8px 11px; background:var(--surface-1);
+              border:1px solid var(--border); border-radius:var(--r-md); }
+</style>
+</head>
+<body class="console" data-page="settings">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div><h1>Settings</h1><div class="sub">Everything on this page is a database row, not code. Change it and the product changes — no deploy.</div></div>
+      <button class="btn btn-primary btn-sm" onclick="alert('Demo only.')">Save changes</button>
+    </div>
+
+    <div class="tabs" style="margin-bottom:16px">
+      <button class="tab active" onclick="tab(this,'brand')">Branding</button>
+      <button class="tab" onclick="tab(this,'pipeline')">Pipeline</button>
+      <button class="tab" onclick="tab(this,'catalog')">Types &amp; units</button>
+      <button class="tab" onclick="tab(this,'fields')">Custom fields</button>
+      <button class="tab" onclick="tab(this,'automation')">Automation</button>
+      <button class="tab" onclick="tab(this,'ai')">AI</button>
+    </div>
+
+    <!-- BRANDING -->
+    <section id="p-brand" class="split">
+      <div class="card">
+        <div class="card-head"><h3>Company &amp; branding</h3></div>
+        <div class="card-body grid" style="gap:14px">
+          <div class="grid g-2" style="gap:12px">
+            <div class="field"><label class="label">Company name</label><input class="input" value="Shree Estates"></div>
+            <div class="field"><label class="label">Public site address</label><input class="input" value="shreeestates.in"></div>
+          </div>
+          <div class="grid g-3" style="gap:12px">
+            <div class="field"><label class="label">Currency</label><select class="select"><option>₹ INR</option><option>$ USD</option><option>AED</option></select></div>
+            <div class="field"><label class="label">Number format</label><select class="select"><option>Indian (1,50,00,000)</option><option>International (15,000,000)</option></select></div>
+            <div class="field"><label class="label">Default brokerage</label><input class="input num" value="2.0"></div>
+          </div>
+          <div class="field"><label class="label">Brand colour</label>
+            <div class="swatchrow">
+              <span class="sw on" style="background:#0B5D51" onclick="pickSw(this)"></span>
+              <span class="sw" style="background:#1A4D8F" onclick="pickSw(this)"></span>
+              <span class="sw" style="background:#7A2E2E" onclick="pickSw(this)"></span>
+              <span class="sw" style="background:#3B2E6E" onclick="pickSw(this)"></span>
+              <span class="sw" style="background:#1F1F1F" onclick="pickSw(this)"></span>
+              <span class="sw" style="background:#B8862F" onclick="pickSw(this)"></span>
+            </div>
+            <span class="hint">Colour, logo and labels flow from here into the console, the public site and the PDF brochures.</span>
+          </div>
+          <div class="field"><label class="label">Logo</label>
+            <div class="dropzone" style="border:2px dashed var(--border-strong);border-radius:var(--r-md);padding:18px;text-align:center;color:var(--text-muted);font-size:.84rem" onclick="alert('Demo only.')">Upload a PNG or SVG</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Rename anything</h3></div>
+        <div class="card-body grid" style="gap:12px">
+          <p class="small sec">If your team says "client" instead of "lead", or "site" instead of "property", change the words. Every screen, export and notification follows.</p>
+          <div class="grid g-2" style="gap:10px">
+            <div class="field"><label class="label">"Lead" is called</label><input class="input" value="Lead"></div>
+            <div class="field"><label class="label">"Property" is called</label><input class="input" value="Property"></div>
+            <div class="field"><label class="label">"Team Member" is called</label><input class="input" value="Team Member"></div>
+            <div class="field"><label class="label">"Deal" is called</label><input class="input" value="Deal"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIPELINE -->
+    <section id="p-pipeline" class="hide split">
+      <div class="card">
+        <div class="card-head"><h3>Pipeline stages</h3><button class="btn btn-sm btn-primary" onclick="alert('Demo only.')">+ Add stage</button></div>
+        <div class="card-body grid" style="gap:8px" id="stageList"></div>
+        <div class="card-foot small sec">Drag to reorder, rename freely, mark which stages count as won or lost. Existing leads keep working — the board reads this table.</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Lead sources &amp; lost reasons</h3></div>
+        <div class="card-body">
+          <div class="upper" style="margin-bottom:8px">Sources</div>
+          <div class="chipset" id="srcChips"></div>
+          <div class="divider"></div>
+          <div class="upper" style="margin-bottom:8px">Lost reasons</div>
+          <div class="chipset" id="lostChips"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATALOG -->
+    <section id="p-catalog" class="hide split">
+      <div class="card">
+        <div class="card-head"><h3>Property types</h3><button class="btn btn-sm" onclick="alert('Demo only.')">+ Add type</button></div>
+        <div class="card-body grid" style="gap:8px" id="typeList"></div>
+        <div class="card-foot small sec">Each type carries its own field set — an agricultural listing asks for water source and soil, a commercial one asks for frontage and floor load. Adding a type never needs a database migration.</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Area units</h3><span class="badge badge-outline">Conversion to sq ft</span></div>
+        <div class="table-wrap"><table class="tbl" id="unitTbl"></table></div>
+        <div class="card-foot small sec">Bigha varies by state, so you can override the factor for your region. Everything is stored normalised to sq ft, which is what makes cross-unit search work.</div>
+      </div>
+    </section>
+
+    <!-- CUSTOM FIELDS -->
+    <section id="p-fields" class="hide">
+      <div class="card">
+        <div class="card-head"><h3>Custom fields</h3><button class="btn btn-sm btn-primary" onclick="alert('Demo only.')">+ Add field</button></div>
+        <div class="table-wrap"><table class="tbl" id="cfTbl"></table></div>
+        <div class="card-foot small sec">
+          A field added here appears in the form, in the list filters, in exports and — if you tick "show publicly" — on the website listing. No developer involved.
+        </div>
+      </div>
+    </section>
+
+    <!-- AUTOMATION -->
+    <section id="p-automation" class="hide split">
+      <div class="card">
+        <div class="card-head"><h3>WhatsApp &amp; automation</h3></div>
+        <div class="card-body" id="autoList"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Team permissions</h3><span class="badge badge-gold">Owner only</span></div>
+        <div class="card-body" id="permList"></div>
+      </div>
+    </section>
+
+    <!-- AI -->
+    <section id="p-ai" class="hide split">
+      <div class="card">
+        <div class="card-head"><h3>AI Analyst</h3></div>
+        <div class="card-body" id="aiList"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Usage this month</h3></div>
+        <div class="card-body">
+          <div class="between" style="margin-bottom:6px"><span class="small">Questions asked</span><span class="bold num">312</span></div>
+          <div class="between" style="margin-bottom:6px"><span class="small">Monthly budget used</span><span class="bold num">38%</span></div>
+          <div class="bar-track" style="height:8px"><span class="bar-fill" style="width:38%"></span></div>
+          <p class="hint" style="margin-top:10px">Every question, the tools it called and the rows it saw are recorded, so you can audit any answer the AI gave.</p>
+          <button class="btn btn-sm btn-block" style="margin-top:10px" onclick="alert('Demo only.')">View AI audit log</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+if (!isAdmin()) location.replace("member.html");
+
+function tab(btn, name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+  ["brand", "pipeline", "catalog", "fields", "automation", "ai"].forEach(p =>
+    document.getElementById("p-" + p).classList.toggle("hide", p !== name));
+}
+function pickSw(el) { el.parentElement.querySelectorAll(".sw").forEach(s => s.classList.remove("on")); el.classList.add("on"); }
+function tog(el) { el.classList.toggle("on"); }
+
+function chips(el, list) {
+  document.getElementById(el).innerHTML =
+    list.map(s => `<span class="chip on" style="cursor:default">${s}</span>`).join("") +
+    `<button class="chip" onclick="alert('Demo only.')">+ Add</button>`;
+}
+chips("srcChips", ["Website", "WhatsApp", "Referral", "Portal", "Walk-in", "Call", "Hoarding"]);
+chips("lostChips", ["Budget mismatch", "Bought elsewhere", "Location not suitable", "Loan rejected", "Postponed", "Unresponsive"]);
+
+document.getElementById("stageList").innerHTML = DEMO.stages.map((s, i) => `
+  <div class="sortable">
+    <span class="muted" style="cursor:grab">⠿</span>
+    <span style="width:11px;height:11px;border-radius:50%;background:${s.color};flex:none"></span>
+    <input class="input" value="${s.label}" style="flex:1 1 auto">
+    ${s.key === "closed_won" ? '<span class="badge badge-good">counts as won</span>' : ""}
+    ${s.key === "closed_lost" ? '<span class="badge badge-critical">counts as lost</span>' : ""}
+    <button class="btn btn-sm btn-ghost" onclick="alert('Demo only.')">✕</button>
+  </div>`).join("");
+
+document.getElementById("typeList").innerHTML = DEMO.types.map(t => `
+  <div class="sortable">
+    <span class="muted" style="cursor:grab">⠿</span>
+    <input class="input" value="${t.label}" style="flex:1 1 auto">
+    <span class="badge badge-outline">${DEMO.properties.filter(p => p.type === t.key).length} listings</span>
+    <button class="btn btn-sm btn-ghost" onclick="alert('Demo only.')">Fields</button>
+  </div>`).join("");
+
+document.getElementById("unitTbl").innerHTML = `
+  <thead><tr><th>Unit</th><th>Code</th><th class="r">Sq ft per unit</th><th class="r">Used by</th></tr></thead>
+  <tbody>${DEMO.areaUnits.map(u => `<tr>
+    <td class="small bold">${u.label}</td><td class="num small muted">${u.code}</td>
+    <td class="r num">${indian(u.f)}</td>
+    <td class="r num">${DEMO.properties.filter(p => p.unit === u.code).length}</td></tr>`).join("")}</tbody>`;
+
+document.getElementById("cfTbl").innerHTML = `
+  <thead><tr><th>Field</th><th>Applies to</th><th>Type</th><th>Options</th><th class="r">Public</th><th class="r">Required</th><th></th></tr></thead>
+  <tbody>${[
+    ["Loan pre-approved", "Lead", "Yes / No", "—", 0, 0],
+    ["Vaastu compliant", "Property", "Yes / No", "—", 1, 0],
+    ["Society NOC status", "Property", "Dropdown", "Pending, Received, N/A", 0, 1],
+    ["Referred by", "Lead", "Text", "—", 0, 0],
+    ["Registration city", "Deal", "Dropdown", "Mumbai, Thane, Pune", 0, 1],
+    ["RERA number", "Property", "Text", "—", 1, 0]
+  ].map(([n, e, t, o, pub, req]) => `<tr>
+    <td class="small bold">${n}</td><td class="small">${e}</td><td class="small">${t}</td>
+    <td class="small muted">${o}</td>
+    <td class="r">${pub ? '<span class="badge badge-good">Public</span>' : '<span class="muted">—</span>'}</td>
+    <td class="r">${req ? '<span class="badge badge-warn">Required</span>' : '<span class="muted">—</span>'}</td>
+    <td class="r"><button class="btn btn-sm btn-ghost" onclick="alert('Demo only.')">Edit</button></td></tr>`).join("")}</tbody>`;
+
+function rows(el, list) {
+  document.getElementById(el).innerHTML = list.map(([t, d, on]) => `
+    <div class="setrow">
+      <div class="stack grow"><span class="small bold">${t}</span><span class="tiny muted">${d}</span></div>
+      <button class="toggle ${on ? "on" : ""}" onclick="tog(this)" aria-label="${t}"></button>
+    </div>`).join("");
+}
+rows("autoList", [
+  ["WhatsApp integration", "Business number +91 98200 11223 · Meta Cloud API", 1],
+  ["Auto-reply to website enquiries", "Sends welcome_enquiry_v1 within seconds", 1],
+  ["Follow-up reminders", "Checks every 15 minutes and nudges the lead and the agent", 1],
+  ["Create leads from #LEAD messages", "Team members can text a lead straight in", 1],
+  ["AI fallback for unparsed messages", "Reads plain-language messages and asks for confirmation", 1],
+  ["Site-visit reminder", "2 hours before a scheduled visit", 1],
+  ["Congratulate on closing", "Sends deal_congrats_v1 to the buyer", 0]
+]);
+rows("permList", [
+  ["Team members can create properties", "Off means only owner and admin can add listings", 1],
+  ["Member uploads need approval", "New listings land in your approval queue", 1],
+  ["Team leads can see their downline", "A lead sees their branch, never another branch", 1],
+  ["Members can export their own data", "CSV of their own leads only", 0],
+  ["Auto-assign website leads", "Round-robin across active members", 1],
+  ["Admins can create invite keys", "Off means only the owner can invite", 1]
+]);
+rows("aiList", [
+  ["AI Analyst enabled", "Natural-language questions over your data", 1],
+  ["Team members can use the AI", "Scoped strictly to their own rows", 1],
+  ["Nightly insight generation", "Fresh insight cards on the dashboard every morning", 1],
+  ["Include commission data in answers", "Owner and admin only regardless of this switch", 1],
+  ["Store full tool output in the audit log", "Off stores only row counts and a hash", 0]
+]);
+</script>
+</body>
+</html>

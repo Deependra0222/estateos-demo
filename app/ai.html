@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Analyst · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="console" data-page="ai">
+
+<main class="main">
+  <div class="page">
+    <div class="ai-wrap">
+
+      <div class="between" style="margin-bottom:14px">
+        <div>
+          <h1>AI Analyst</h1>
+          <div class="sub" id="scopeLine"></div>
+        </div>
+        <button class="btn btn-sm" onclick="location.reload()">New chat</button>
+      </div>
+
+      <div class="filterbar">
+        <span class="upper" style="margin-right:2px">Filters</span>
+        <select class="select" id="fPeriod"><option>Last 6 months</option><option>September 2026</option><option>This quarter</option><option>FY 2026-27</option></select>
+        <select class="select" id="fRegion"><option>All regions</option><option>Mumbai West</option><option>Thane</option><option>Pune</option></select>
+        <select class="select" id="fMember"></select>
+        <select class="select" id="fType"></select>
+        <span class="small muted" style="margin-left:auto">The AI answers using exactly these filters — same numbers as the dashboard.</span>
+      </div>
+
+      <div id="thread"></div>
+
+      <div id="starter">
+        <div class="ai-hero">
+          <div class="spark">✨</div>
+          <h2>Ask anything about your data</h2>
+          <p class="sec small" style="max-width:520px;margin:6px auto 0" id="heroSub"></p>
+        </div>
+        <div class="grid g-2" id="chips" style="gap:10px"></div>
+      </div>
+
+      <div class="ask-bar">
+        <div class="ask-input">
+          <span style="font-size:1.05rem">✨</span>
+          <input id="q" placeholder="e.g. Which locality gave us the best conversion last quarter?"
+                 onkeydown="if(event.key==='Enter')ask(this.value)">
+          <button class="btn btn-primary btn-sm" onclick="ask(document.getElementById('q').value)">Ask</button>
+        </div>
+        <p class="tiny muted center" style="margin-top:8px">
+          Answers are built only from query results — the model has no ability to reply without pulling rows, and it can only pull rows your account is allowed to read.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+const ADMIN = isAdmin(), M = me();
+
+document.getElementById("scopeLine").innerHTML = ADMIN
+  ? 'Answering over: <b>the whole organisation</b> <span class="badge badge-brand">Owner scope</span>'
+  : `Answering over: <b>your data only</b> <span class="badge badge-outline">${M.name} · ${DEMO.levels.find(l=>l.id===M.level).name}</span>`;
+document.getElementById("heroSub").textContent = ADMIN
+  ? "Leads, properties, deals, commission, team performance and regions — filtered by month, year, region or person."
+  : "Your leads, your site visits, your deals and your commission. Company totals and other agents' numbers are not available to your account.";
+
+document.getElementById("fMember").innerHTML = ADMIN
+  ? '<option>All team members</option>' + DEMO.people.filter(p => p.role === "member").map(p => `<option>${p.name}</option>`).join("")
+  : `<option>${M.name} (you)</option>`;
+if (!ADMIN) document.getElementById("fMember").disabled = true;
+document.getElementById("fType").innerHTML = '<option>All property types</option>' + DEMO.types.map(t => `<option>${t.label}</option>`).join("");
+
+const SUGGEST = ADMIN ? DEMO.aiSuggested : [
+  "How am I doing this month?", "Which of my leads are most likely to close?",
+  "Show my overdue follow-ups", "How much commission am I owed?"
+];
+document.getElementById("chips").innerHTML = SUGGEST.map(s =>
+  `<button class="btn" style="justify-content:flex-start;text-align:left" onclick="ask('${s.replace(/'/g, "\\'")}')">✨ ${s}</button>`).join("");
+
+/* ---- tiny markdown ---- */
+function md(t) {
+  const blocks = t.split("\n\n");
+  return blocks.map(b => {
+    if (b.trim().startsWith("|")) {
+      const lines = b.trim().split("\n").filter(l => !/^\|[\s:|-]+\|$/.test(l));
+      const cells = lines.map(l => l.split("|").slice(1, -1).map(c => c.trim()));
+      return `<div class="table-wrap"><table class="tbl"><thead><tr>${cells[0].map(c => `<th>${c}</th>`).join("")}</tr></thead>
+        <tbody>${cells.slice(1).map(r => `<tr>${r.map(c => `<td class="small">${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    }
+    if (/^\d\./m.test(b) || /^- /m.test(b)) {
+      const items = b.split("\n").filter(Boolean).map(l => `<li style="margin-bottom:6px">${inline(l.replace(/^(\d\.|-)\s*/, ""))}</li>`).join("");
+      return `<ol style="padding-left:20px;font-size:.9rem;line-height:1.62">${items}</ol>`;
+    }
+    return `<p>${inline(b).replace(/\n/g, "<br>")}</p>`;
+  }).join("");
+}
+function inline(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>"); }
+
+/* ---- ask ---- */
+let busy = false;
+function ask(qRaw) {
+  const q = (qRaw || "").trim();
+  if (!q || busy) return;
+  busy = true;
+  document.getElementById("q").value = "";
+  document.getElementById("starter").classList.add("hide");
+
+  const thread = document.getElementById("thread");
+  thread.insertAdjacentHTML("beforeend", `
+    <div class="ai-msg user"><span class="who">${initials(M.name)}</span>
+      <div class="ai-bubble"><p style="font-weight:600">${esc(q)}</p></div></div>`);
+
+  const id = "a" + Date.now();
+  thread.insertAdjacentHTML("beforeend", `
+    <div class="ai-msg bot"><span class="who">✨</span>
+      <div class="ai-bubble" id="${id}">
+        <p class="typing small muted"><span></span><span></span><span></span> querying your data…</p>
+      </div></div>`);
+  window.scrollTo(0, document.body.scrollHeight);
+
+  const key = q.toLowerCase().replace(/\s+/g, " ");
+  const a = ADMIN
+    ? (DEMO.aiAnswers[key] || fallback(q))
+    : (DEMO.aiAnswers["__member_default"]);
+
+  setTimeout(() => {
+    document.getElementById(id).innerHTML = renderAnswer(a, q);
+    if (a.chart) drawChart(a.chart, id);
+    busy = false;
+    window.scrollTo(0, document.body.scrollHeight);
+  }, 900);
+}
+
+function fallback(q) {
+  return {
+    text: `I don't have a canned answer for that in this demo, but here's what the live agent would do:\n\n1. Resolve the entities in your question — names, regions, property types — to ids.\n2. Pick the right tool: **kpi_summary**, **lead_funnel**, **member_performance**, **region_performance**, **property_stats**, **commission_ledger**, **trend_series** or **compare_periods**.\n3. Run it against a reporting view **as you**, so row-level security decides what comes back.\n4. Write the answer only from those rows, and show you the figures it used.\n\nTry one of the suggested questions to see a full worked answer.`,
+    numbers: [], chart: null,
+    followups: DEMO.aiSuggested.slice(0, 3)
+  };
+}
+
+function renderAnswer(a, q) {
+  const nums = a.numbers && a.numbers.length ? `<div class="ai-numbers">${a.numbers.map(([l, v]) =>
+    `<div class="ai-num"><div class="n">${v}</div><div class="l">${l}</div></div>`).join("")}</div>` : "";
+  const chart = a.chart ? `<div class="card card-pad" style="margin:12px 0"><div id="chart-${a.chart}-holder"></div></div>` : "";
+  const fu = (a.followups || []).map(f =>
+    `<button class="chip" onclick="ask('${f.replace(/'/g, "\\'")}')">${f}</button>`).join("");
+
+  return `${md(a.text)}${nums}${chart}
+    <div class="ai-src">
+      Built from <b>${a.scope === "self" ? "your own rows only" : "organisation-wide rows"}</b> ·
+      filters: ${document.getElementById("fPeriod").value}, ${document.getElementById("fRegion").value},
+      ${document.getElementById("fMember").value}, ${document.getElementById("fType").value} ·
+      tools used: <span class="num">${a.chart === "leaderboard" ? "member_performance" : a.chart === "region" ? "region_performance" : a.chart === "monthly" ? "trend_series, kpi_summary" : "kpi_summary"}</span>
+    </div>
+    ${fu ? `<div class="chipset" style="margin-top:12px">${fu}</div>` : ""}`;
+}
+
+function drawChart(kind, holderId) {
+  const el = document.querySelector(`#${holderId} #chart-${kind}-holder`);
+  if (!el) return;
+  if (kind === "monthly") {
+    barChart(el, DEMO.monthly.map(m => ({ k: m.m, v: m.brokerage })), { valueFmt: v => fmtINR(v) });
+  } else if (kind === "leaderboard") {
+    hbarChart(el, DEMO.leaderboard.slice(0, 5).map(p => ({ k: p.name, v: p.earned, avatar: avatar(p.id, "avatar-sm") })),
+      { valueFmt: v => fmtINR(v) });
+  } else if (kind === "region") {
+    hbarChart(el, [{ k: "Pune", v: 31 }, { k: "Thane", v: 9 }, { k: "Mumbai West", v: 6 }],
+      { valueFmt: v => v + " h", color: "var(--series-2)" });
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leads · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+<style>
+  .kcards.over { outline: 2px dashed var(--brand-500); outline-offset: 4px; border-radius: var(--r-md); }
+  .kcard.dragging { opacity: .45; }
+</style>
+</head>
+<body class="console" data-page="leads">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div>
+        <h1>Leads</h1>
+        <div class="sub" id="sub"></div>
+      </div>
+      <div class="row" style="gap:8px">
+        <div class="chipset">
+          <button class="chip on" id="vBoard" onclick="setView('board')">Board</button>
+          <button class="chip" id="vList" onclick="setView('list')">List</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="alert('Demo only.')">+ New lead</button>
+      </div>
+    </div>
+
+    <div class="filterbar">
+      <input class="input wide" id="q" placeholder="Search name, phone, locality…">
+      <select class="select" id="fowner"></select>
+      <select class="select" id="ftype"></select>
+      <select class="select" id="fregion"><option value="">All regions</option><option>Mumbai West</option><option>Thane</option><option>Pune</option></select>
+      <select class="select" id="fsource"><option value="">Any source</option><option>Website</option><option>WhatsApp</option><option>Referral</option><option>Portal</option><option>Walk-in</option></select>
+      <select class="select" id="fprio"><option value="">Any priority</option><option value="hot">Hot</option><option value="warm">Warm</option><option value="cold">Cold</option></select>
+      <button class="btn btn-sm btn-ghost" onclick="clearAll()">Clear</button>
+      <span class="small muted" style="margin-left:auto" id="count"></span>
+    </div>
+
+    <div id="board" class="kanban"></div>
+
+    <div id="list" class="card hide"><div class="table-wrap"><table class="tbl" id="tbl"></table></div></div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-head"><h3>Pipeline stages are yours to change</h3><span class="badge badge-gold">Owner only</span></div>
+      <div class="card-body">
+        <p class="small sec">These eight columns are rows in a <span class="num">pipeline_stages</span> table, not code. Rename them, reorder them, add "Loan Approval" between Negotiation and Closed, change the colours — the board follows, and existing leads are untouched.</p>
+        <div class="row wrap" style="gap:6px;margin-top:10px" id="stageChips"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+let LEADS = myLeads().map(l => ({ ...l }));
+let view = "board";
+
+document.getElementById("sub").innerHTML = isAdmin()
+  ? 'All leads across the organisation · <span class="badge badge-brand">Owner view</span>'
+  : `Your leads only · <span class="badge badge-outline">${me().name} · ${DEMO.leads.length - LEADS.length} other leads exist and are invisible to you</span>`;
+
+document.getElementById("fowner").innerHTML = '<option value="">Any owner</option>' +
+  DEMO.people.filter(p => visibleIds().includes(p.id)).map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+document.getElementById("ftype").innerHTML = '<option value="">Any type</option>' +
+  DEMO.types.map(t => `<option value="${t.key}">${t.label}</option>`).join("");
+document.getElementById("stageChips").innerHTML = DEMO.stages.map(s =>
+  `<span class="chip" style="cursor:default"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:6px"></span>${s.label}</span>`).join("")
+  + '<button class="chip" onclick="alert(\'Demo only.\')">+ Add stage</button>';
+
+function clearAll() { ["q", "fowner", "ftype", "fregion", "fsource", "fprio"].forEach(i => document.getElementById(i).value = ""); render(); }
+function setView(v) {
+  view = v;
+  document.getElementById("vBoard").classList.toggle("on", v === "board");
+  document.getElementById("vList").classList.toggle("on", v === "list");
+  document.getElementById("board").classList.toggle("hide", v !== "board");
+  document.getElementById("list").classList.toggle("hide", v !== "list");
+  render();
+}
+function filtered() {
+  const g = i => document.getElementById(i).value, q = g("q").toLowerCase();
+  return LEADS.filter(l =>
+    (!q || (l.name + l.phone + l.locality + l.id).toLowerCase().includes(q)) &&
+    (!g("fowner") || l.owner === g("fowner")) &&
+    (!g("ftype") || l.type === g("ftype")) &&
+    (!g("fregion") || l.region === g("fregion")) &&
+    (!g("fsource") || l.source === g("fsource")) &&
+    (!g("fprio") || l.priority === g("fprio")));
+}
+
+function kcard(l) {
+  const overdue = l.next && new Date(l.next) < new Date("2026-10-01T09:00");
+  return `<div class="kcard" draggable="true" data-id="${l.id}">
+    <div class="between"><span class="kcard-name">${esc(l.name)}</span><span class="tiny muted num">${l.id}</span></div>
+    <div class="kcard-meta">${esc(l.config)} · ${esc(l.locality)}</div>
+    <div class="kcard-meta bold" style="color:var(--text-primary)">${esc(l.budget)}</div>
+    <div class="kcard-foot">
+      <span class="badge prio-${l.priority}">${l.priority}</span>
+      <span class="badge badge-outline tiny">${l.source}</span>
+      <span style="margin-left:auto" class="row-tight">
+        ${l.next ? `<span class="tiny ${overdue ? "" : "muted"}" style="${overdue ? "color:var(--critical);font-weight:650" : ""}">${overdue ? "⚠ " : ""}${fmtDateShort(l.next)}</span>` : ""}
+        ${avatar(l.owner, "avatar-sm")}
+      </span>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const rows = filtered();
+  document.getElementById("count").textContent = rows.length + " leads";
+  if (view === "board") {
+    document.getElementById("board").innerHTML = DEMO.stages.map(s => {
+      const inStage = rows.filter(l => l.stage === s.key);
+      return `<div class="kcol">
+        <div class="kcol-head">
+          <span class="stage-dot" style="background:${s.color}"></span>
+          <span class="kcol-title">${s.label}</span>
+          <span class="kcol-count">${inStage.length}</span>
+        </div>
+        <div class="kcards" data-stage="${s.key}">${inStage.map(kcard).join("")}</div>
+      </div>`;
+    }).join("");
+    wireDnd();
+  } else {
+    document.getElementById("tbl").innerHTML = `
+      <thead><tr><th>Lead</th><th>Requirement</th><th>Budget</th><th>Stage</th><th>Source</th><th>Owner</th><th>Next</th><th class="r">Score</th></tr></thead>
+      <tbody>${rows.map(l => {
+        const s = DEMO.stages.find(x => x.key === l.stage);
+        return `<tr>
+          <td><span class="bold small">${esc(l.name)}</span><div class="tiny muted num">${l.id} · ${esc(l.phone)}</div></td>
+          <td class="small">${esc(l.config)} · ${esc(l.locality)}<div class="tiny muted">${esc(l.region)}</div></td>
+          <td class="small num">${esc(l.budget)}</td>
+          <td><span class="badge" style="background:${s.color}1a;color:${s.color}">${s.label}</span></td>
+          <td class="small">${l.source}</td>
+          <td>${avatar(l.owner, "avatar-sm")}</td>
+          <td class="small">${l.next ? fmtTime(l.next) : "—"}</td>
+          <td class="r"><span class="bold num">${l.score}</span>
+            <div class="bar-track" style="width:56px;margin-left:auto;margin-top:3px"><span class="bar-fill" style="width:${l.score}%"></span></div></td>
+        </tr>`;
+      }).join("")}</tbody>`;
+  }
+}
+
+/* ---- Drag & drop between stages ---- */
+function wireDnd() {
+  let dragId = null;
+  document.querySelectorAll(".kcard").forEach(c => {
+    c.addEventListener("dragstart", e => { dragId = c.dataset.id; c.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; });
+    c.addEventListener("dragend", () => c.classList.remove("dragging"));
+  });
+  document.querySelectorAll(".kcards").forEach(z => {
+    z.addEventListener("dragover", e => { e.preventDefault(); z.classList.add("over"); });
+    z.addEventListener("dragleave", () => z.classList.remove("over"));
+    z.addEventListener("drop", e => {
+      e.preventDefault(); z.classList.remove("over");
+      const l = LEADS.find(x => x.id === dragId);
+      if (l && l.stage !== z.dataset.stage) { l.stage = z.dataset.stage; render(); }
+    });
+  });
+}
+
+["q", "fowner", "ftype", "fregion", "fsource", "fprio"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener(el.tagName === "SELECT" ? "change" : "input", render);
+});
+render();
+</script>
+</body>
+</html>

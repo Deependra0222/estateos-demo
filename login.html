@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/theme.css">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body class="auth">
+
+<aside class="auth-aside">
+  <div>
+    <div class="logo" style="margin-bottom:34px">
+      <span class="logo-mark" style="background:linear-gradient(140deg,var(--gold-500),#9C6F1E);color:#21180A">SE</span>
+      <span><span class="logo-name" style="color:#fff">Shree Estates</span><br><span class="logo-sub" style="color:#8FB4AC">powered by EstateOS</span></span>
+    </div>
+    <h2>One workspace for listings, leads, commission and WhatsApp.</h2>
+    <p style="margin-top:12px">Your team sees their own pipeline. You see everything.</p>
+    <div class="auth-points">
+      <div class="auth-point"><span class="tick">✓</span><span>Properties with photos, size in any unit, and price per sq ft / gaj / guntha / acre</span></div>
+      <div class="auth-point"><span class="tick">✓</span><span>Lead pipeline from first enquiry to registration</span></div>
+      <div class="auth-point"><span class="tick">✓</span><span>Commission splits tracked Expected → Approved → Received → Paid</span></div>
+      <div class="auth-point"><span class="tick">✓</span><span>WhatsApp inbox and automated follow-ups</span></div>
+      <div class="auth-point"><span class="tick">✓</span><span>Ask the AI anything about your data — scoped to what you're allowed to see</span></div>
+    </div>
+  </div>
+  <p style="font-size:.76rem;color:#79A39A">Demo build · all data fictional · nothing is saved</p>
+</aside>
+
+<main class="auth-main">
+  <div class="auth-card">
+
+    <!-- ========== SIGN IN ========== -->
+    <section id="pane-signin">
+      <h1 style="margin-bottom:4px">Sign in</h1>
+      <p class="sec small" style="margin-bottom:18px">Pick a role to explore the demo. Each one sees a different slice of the same data.</p>
+
+      <div class="rolepick">
+        <button class="roleopt sel" data-role="owner" onclick="pick(this)">
+          <span class="ico">👑</span>
+          <span><span class="t">Owner — Rajesh Mehta</span>
+          <span class="d">Sees everything: all 6 team members, every lead, every deal, full commission ledger, AI across the whole company.</span></span>
+        </button>
+        <button class="roleopt" data-role="admin" onclick="pick(this)">
+          <span class="ico">🗂️</span>
+          <span><span class="t">Admin — Anita Deshmukh</span>
+          <span class="d">Runs the office. Same visibility as the owner, but cannot change commission rules or member levels.</span></span>
+        </button>
+        <button class="roleopt" data-role="member" onclick="pick(this)">
+          <span class="ico">🧑‍💼</span>
+          <span><span class="t">Team Member — Ravi Sharma</span>
+          <span class="d">Senior Agent. Sees <b>only his own</b> leads, deals and commission. The owner's CRM is invisible to him.</span></span>
+        </button>
+      </div>
+
+      <div class="grid" style="gap:12px;margin-top:18px">
+        <div class="field"><label class="label">Email</label><input class="input" id="li-email" value="rajesh@shreeestates.in"></div>
+        <div class="field"><label class="label">Password</label><input class="input" type="password" value="demo1234"></div>
+        <button class="btn btn-primary btn-lg btn-block" onclick="go()">Sign in →</button>
+      </div>
+
+      <div class="divider"></div>
+      <p class="small sec center">
+        New here? <a href="#" onclick="show('signup');return false">Create an account</a> ·
+        <a href="index.html">Back to public site</a>
+      </p>
+    </section>
+
+    <!-- ========== SIGN UP ========== -->
+    <section id="pane-signup" class="hide">
+      <h1 style="margin-bottom:4px">Create your account</h1>
+      <p class="sec small" style="margin-bottom:16px">Are you setting up a company, or joining one?</p>
+
+      <div class="rolepick">
+        <button class="roleopt sel" data-signup="owner" onclick="pickSignup(this)">
+          <span class="ico">🏢</span>
+          <span><span class="t">I own the business</span><span class="d">Create the organisation, invite your team, set commission rules.</span></span>
+        </button>
+        <button class="roleopt" data-signup="member" onclick="pickSignup(this)">
+          <span class="ico">🔑</span>
+          <span><span class="t">I'm joining a team</span><span class="d">You'll need the invite key from your owner or admin, and they'll approve you before you get access.</span></span>
+        </button>
+      </div>
+
+      <div class="grid" style="gap:12px;margin-top:16px">
+        <div class="field"><label class="label">Full name</label><input class="input" placeholder="e.g. Amit Kulkarni"></div>
+        <div class="field"><label class="label">Email</label><input class="input" placeholder="you@example.com"></div>
+        <div class="field"><label class="label">Mobile</label><input class="input" placeholder="+91 XXXXX XXXXX"></div>
+        <div class="field"><label class="label">Password</label><input class="input" type="password" placeholder="At least 8 characters"></div>
+
+        <div id="ownerExtra">
+          <div class="field"><label class="label">Company name</label><input class="input" placeholder="e.g. Shree Estates"></div>
+        </div>
+
+        <div id="memberExtra" class="hide">
+          <div class="field">
+            <label class="label">Company invite key</label>
+            <input class="input num" placeholder="SHREE-8KQ2-DLM9" style="letter-spacing:.08em;text-transform:uppercase">
+            <span class="hint">Ask your owner or admin for this. It identifies which company you're joining and what level you start at.</span>
+          </div>
+          <div class="field" style="margin-top:10px">
+            <label class="label">Message to the admin <span style="font-weight:400">(optional)</span></label>
+            <textarea class="textarea" rows="2" placeholder="Referred by Vikram. 3 years in Andheri residential resale."></textarea>
+          </div>
+          <div class="demo-note" style="margin-top:12px">
+            🔒 You will <b>not</b> get access straight away. Your request goes to the admin's approval queue, and until they approve it your account can read nothing at all.
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-block" onclick="signup()">Create account</button>
+      </div>
+
+      <div class="divider"></div>
+      <p class="small sec center">Already have an account? <a href="#" onclick="show('signin');return false">Sign in</a></p>
+    </section>
+
+    <!-- ========== PENDING ========== -->
+    <section id="pane-pending" class="hide">
+      <div class="card card-pad center">
+        <div style="font-size:2.4rem">⏳</div>
+        <h1 style="margin:10px 0 6px">Waiting for approval</h1>
+        <p class="sec">Your request to join <b>Shree Estates</b> has been sent to the admin. You'll get an email and a WhatsApp message the moment it's approved — usually the same day.</p>
+        <div class="locked" style="margin-top:16px;text-align:left">
+          <b style="color:var(--text-secondary)">While you wait, you can see nothing.</b><br>
+          No properties, no leads, no team data. Your account has no company attached to it yet, so the database returns nothing for every request — this is enforced in Postgres, not just hidden in the interface.
+        </div>
+        <div class="row" style="gap:8px;margin-top:16px;justify-content:center">
+          <button class="btn" onclick="show('signin')">Back to sign in</button>
+          <button class="btn btn-primary" onclick="approveDemo()">🎬 Simulate: admin approves me</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PLATFORM KEY ========== -->
+    <section id="pane-platform" class="hide">
+      <div class="card card-pad">
+        <h1 style="margin-bottom:4px">Platform access</h1>
+        <p class="sec small" style="margin-bottom:14px">Developer / support console. Separate from any company's owner account.</p>
+        <div class="field"><label class="label">Platform key</label><input class="input num" placeholder="PLT-XXXX-XXXX-XXXX" style="letter-spacing:.08em"></div>
+        <div class="field" style="margin-top:10px"><label class="label">Organisation to support</label>
+          <select class="select"><option>Shree Estates</option><option>Landmark Realty</option><option>Vastu Associates</option></select></div>
+        <div class="field" style="margin-top:10px"><label class="label">Session length</label>
+          <select class="select"><option>2 hours</option><option>8 hours</option><option>24 hours</option></select></div>
+        <button class="btn btn-primary btn-block" style="margin-top:14px" onclick="alert('Demo only — in the live product this opens a time-boxed, fully audited support session scoped to that one organisation.')">Open support session</button>
+        <div class="demo-note" style="margin-top:12px">Every action taken in a platform session is written to the client's audit log with <span class="num">actor_kind = platform</span>, so they can see exactly what the developer touched.</div>
+        <p class="small center" style="margin-top:12px"><a href="#" onclick="show('signin');return false">← Back</a></p>
+      </div>
+    </section>
+
+    <p class="tiny center sec" style="margin-top:18px">
+      <a href="#" onclick="show('platform');return false">Platform / developer access</a>
+    </p>
+  </div>
+</main>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+let chosen = "owner", chosenSignup = "owner";
+const EMAILS = { owner: "rajesh@shreeestates.in", admin: "anita@shreeestates.in", member: "ravi@shreeestates.in" };
+
+function pick(btn) {
+  document.querySelectorAll("[data-role]").forEach(b => b.classList.remove("sel"));
+  btn.classList.add("sel");
+  chosen = btn.dataset.role;
+  document.getElementById("li-email").value = EMAILS[chosen];
+}
+function pickSignup(btn) {
+  document.querySelectorAll("[data-signup]").forEach(b => b.classList.remove("sel"));
+  btn.classList.add("sel");
+  chosenSignup = btn.dataset.signup;
+  document.getElementById("ownerExtra").classList.toggle("hide", chosenSignup !== "owner");
+  document.getElementById("memberExtra").classList.toggle("hide", chosenSignup !== "member");
+}
+function show(pane) {
+  ["signin", "signup", "pending", "platform"].forEach(p =>
+    document.getElementById("pane-" + p).classList.toggle("hide", p !== pane));
+  window.scrollTo(0, 0);
+}
+function go() {
+  setRole(chosen);
+  location.href = chosen === "member" ? "app/member.html" : "app/dashboard.html";
+}
+function signup() {
+  if (chosenSignup === "member") { show("pending"); }
+  else { setRole("owner"); location.href = "app/dashboard.html"; }
+}
+function approveDemo() { setRole("member"); location.href = "app/member.html"; }
+</script>
+</body>
+</html>

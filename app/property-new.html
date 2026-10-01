@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add Property · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+<style>
+  .wizsteps { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; }
+  .wizstep { display:flex; align-items:center; gap:7px; padding:7px 13px; border-radius:var(--r-pill);
+             background:var(--surface-1); border:1px solid var(--border); font-size:.8rem; font-weight:600; color:var(--text-muted); }
+  .wizstep.on { background:var(--brand-700); border-color:var(--brand-700); color:#fff; }
+  .wizstep.done { color:var(--good); border-color:#B6DFCB; background:var(--good-bg); }
+  .wizstep .n { width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.08);display:grid;place-items:center;font-size:.66rem; }
+  .wizstep.on .n { background:rgba(255,255,255,.22); }
+  .conv-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; }
+  .conv { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md); padding:9px 11px; }
+  .conv .u { font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; font-weight:700; color:var(--text-muted); }
+  .conv .a { font-size:.88rem; font-weight:650; font-variant-numeric:tabular-nums; }
+  .conv .p { font-size:.72rem; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+  .dropzone { border:2px dashed var(--border-strong); border-radius:var(--r-lg); padding:26px; text-align:center;
+              background:var(--surface-2); color:var(--text-muted); font-size:.85rem; }
+  .thumbs { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:9px; margin-top:12px; }
+  .thumb { position:relative; border-radius:var(--r-md); overflow:hidden; aspect-ratio:4/3; }
+  .thumb .photo { width:100%; height:100%; }
+  .thumb .tag { position:absolute; top:5px; left:5px; z-index:3; }
+</style>
+</head>
+<body class="console" data-page="properties">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div>
+        <a href="properties.html" class="small sec">← Properties</a>
+        <h1 style="margin-top:4px">Add a property</h1>
+        <div class="sub" id="whoSub"></div>
+      </div>
+      <div class="row" style="gap:8px">
+        <button class="btn btn-sm" onclick="alert('Demo only — saved as a draft in the live product.')">Save draft</button>
+        <button class="btn btn-primary btn-sm" id="publishBtn"></button>
+      </div>
+    </div>
+
+    <div class="wizsteps">
+      <span class="wizstep done"><span class="n">✓</span> Basics</span>
+      <span class="wizstep on"><span class="n">2</span> Size &amp; price</span>
+      <span class="wizstep"><span class="n">3</span> Location</span>
+      <span class="wizstep"><span class="n">4</span> Features</span>
+      <span class="wizstep"><span class="n">5</span> Photos</span>
+      <span class="wizstep"><span class="n">6</span> Visibility</span>
+    </div>
+
+    <div class="split">
+      <div class="stack" style="gap:16px">
+
+        <div class="card">
+          <div class="card-head"><h3>1 · Basics</h3></div>
+          <div class="card-body grid" style="gap:14px">
+            <div class="field"><label class="label">Listing title</label>
+              <input class="input" id="pTitle" value="Sea-Facing 3 BHK at Carter Road"></div>
+            <div class="grid g-3" style="gap:12px">
+              <div class="field"><label class="label">Property type</label><select class="select" id="pType"></select></div>
+              <div class="field"><label class="label">Listing for</label>
+                <select class="select" id="pListing"><option value="sale">Sale</option><option value="rent">Rent</option><option value="lease">Lease</option></select></div>
+              <div class="field"><label class="label">Property code</label><input class="input num" value="PRP-1092" readonly></div>
+            </div>
+            <div class="field"><label class="label">Description</label>
+              <textarea class="textarea" id="pDesc" rows="3">West-facing 3 BHK on Carter Road with uninterrupted sea views from the living room and master bedroom.</textarea></div>
+          </div>
+        </div>
+
+        <div class="card" style="border-color:var(--brand-500);box-shadow:0 0 0 3px rgba(18,141,122,.09)">
+          <div class="card-head"><h3>2 · Size &amp; price</h3>
+            <span class="badge badge-brand">Enter it in whatever unit you quote in</span></div>
+          <div class="card-body grid" style="gap:14px">
+            <div class="grid g-3" style="gap:12px">
+              <div class="field"><label class="label">Area</label><input class="input num" id="aVal" type="number" value="1450"></div>
+              <div class="field"><label class="label">Unit</label><select class="select" id="aUnit"></select></div>
+              <div class="field"><label class="label">Carpet area <span style="font-weight:400">(optional)</span></label><input class="input num" type="number" placeholder="1180"></div>
+            </div>
+            <div class="grid g-3" style="gap:12px">
+              <div class="field"><label class="label">Total price (₹)</label><input class="input num" id="pTotal" type="number" value="42500000"></div>
+              <div class="field"><label class="label">Price per unit (₹)</label><input class="input num" id="pPer" type="number" value="29310"></div>
+              <div class="field"><label class="label">Quote price in</label><select class="select" id="pUnit"></select></div>
+            </div>
+            <div class="hint">Edit either box — the other recalculates. We store both, plus a normalised ₹/sq ft so every listing stays comparable and searchable no matter which unit it was entered in.</div>
+            <div>
+              <div class="upper" style="margin-bottom:7px">Same property, every unit</div>
+              <div class="conv-grid" id="conv"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>3 · Location</h3></div>
+          <div class="card-body grid" style="gap:12px">
+            <div class="field"><label class="label">Address</label><input class="input" value="Plot 14, Carter Road"></div>
+            <div class="grid g-3" style="gap:12px">
+              <div class="field"><label class="label">Locality</label><input class="input" value="Bandra West"></div>
+              <div class="field"><label class="label">City</label><input class="input" value="Mumbai"></div>
+              <div class="field"><label class="label">Pincode</label><input class="input num" value="400050"></div>
+            </div>
+            <div class="grid g-3" style="gap:12px">
+              <div class="field"><label class="label">Region</label><select class="select"><option>Mumbai West</option><option>Thane</option><option>Pune</option></select></div>
+              <div class="field"><label class="label">Landmark</label><input class="input" value="Opp. Otters Club"></div>
+              <div class="field"><label class="label">Map pin</label><button class="btn" onclick="alert('Demo only.');return false">Drop pin on map</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>4 · Features</h3><span class="badge badge-outline" id="typeHint">Residential fields</span></div>
+          <div class="card-body grid" style="gap:12px">
+            <div class="grid g-3" style="gap:12px" id="typeFields"></div>
+            <div class="field"><label class="label">Amenities</label>
+              <div class="chipset" id="amen"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>5 · Photos</h3><span class="badge badge-outline">First image becomes the cover</span></div>
+          <div class="card-body">
+            <div class="dropzone" onclick="alert('Demo only — drag & drop, reorder and set-cover work in the live product.')">
+              📷 Drag photos here, or click to browse<br>
+              <span class="tiny">JPG / PNG / WebP · up to 20 images · compressed and resized automatically</span>
+            </div>
+            <div class="thumbs" id="thumbs"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="stack" style="gap:16px">
+        <div class="card">
+          <div class="card-head"><h3>6 · Visibility</h3></div>
+          <div class="card-body grid" style="gap:12px" id="visBox"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Live preview</h3></div>
+          <div class="card-body">
+            <div class="pcard" style="box-shadow:none">
+              <div class="photo" style="aspect-ratio:16/10">
+                <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=70" alt="" onerror="this.remove()"></div>
+              <div class="pcard-body">
+                <div class="pcard-title" id="prevTitle">—</div>
+                <div class="pcard-loc">📍 Bandra West, Mumbai</div>
+                <div><div class="pcard-price" id="prevPrice">—</div>
+                     <div class="pcard-per" id="prevPer">—</div></div>
+                <div class="pcard-by" id="prevBy"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-note">🎬 <b>Demo</b> — nothing saves. The unit converter above is real arithmetic, so you can check it against your own numbers.</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+const M = me();
+document.getElementById("whoSub").innerHTML = isAdmin()
+  ? 'You can publish directly to the public site.'
+  : `You're a ${DEMO.levels.find(l=>l.id===M.level).name}. Your listing goes to the owner's approval queue before it appears publicly.`;
+document.getElementById("publishBtn").textContent = isAdmin() ? "Publish listing" : "Submit for approval";
+document.getElementById("publishBtn").onclick = () => alert(isAdmin()
+  ? "Demo only — in the live product this publishes to the public site and writes an audit entry."
+  : "Demo only — this would create the listing as 'pending_approval'. The database rejects a member publishing directly, not just the interface.");
+
+document.getElementById("pType").innerHTML = DEMO.types.map(t => `<option value="${t.key}">${t.label}</option>`).join("");
+const unitOpts = DEMO.areaUnits.map(u => `<option value="${u.code}">${u.label}</option>`).join("");
+document.getElementById("aUnit").innerHTML = unitOpts;
+document.getElementById("pUnit").innerHTML = unitOpts;
+
+/* ---- Unit / price engine ---- */
+function factor(code) { return (DEMO.areaUnits.find(u => u.code === code) || { f: 1 }).f; }
+function areaSqft() { return (parseFloat(document.getElementById("aVal").value) || 0) * factor(document.getElementById("aUnit").value); }
+
+function recalcFromTotal() {
+  const total = parseFloat(document.getElementById("pTotal").value) || 0;
+  const s = areaSqft();
+  const pu = document.getElementById("pUnit").value;
+  document.getElementById("pPer").value = s ? Math.round(total / (s / factor(pu))) : 0;
+  paint();
+}
+function recalcFromPer() {
+  const per = parseFloat(document.getElementById("pPer").value) || 0;
+  const s = areaSqft();
+  const pu = document.getElementById("pUnit").value;
+  document.getElementById("pTotal").value = Math.round(per * (s / factor(pu)));
+  paint();
+}
+function paint() {
+  const s = areaSqft();
+  const total = parseFloat(document.getElementById("pTotal").value) || 0;
+  document.getElementById("conv").innerHTML = DEMO.areaUnits.map(u => {
+    const amt = s / u.f;
+    return `<div class="conv"><div class="u">${u.label}</div>
+      <div class="a">${amt >= 100 ? indian(Math.round(amt)) : amt.toFixed(2)}</div>
+      <div class="p">₹${indian(Math.round(amt ? total / amt : 0))} / ${u.label.toLowerCase()}</div></div>`;
+  }).join("");
+
+  document.getElementById("prevTitle").textContent = document.getElementById("pTitle").value || "Untitled listing";
+  document.getElementById("prevPrice").textContent = fmtINR(total);
+  const pu = document.getElementById("pUnit").value;
+  document.getElementById("prevPer").textContent =
+    `₹${indian(parseFloat(document.getElementById("pPer").value) || 0)} per ${DEMO.areaUnits.find(u=>u.code===pu).label.toLowerCase()} · ${indian(Math.round(s))} sq ft`;
+  document.getElementById("prevBy").innerHTML = avatar(M.id, "avatar-sm") + " Posted by " + M.name + " · " + fmtDate(new Date().toISOString());
+}
+
+document.getElementById("pTotal").addEventListener("input", recalcFromTotal);
+document.getElementById("pPer").addEventListener("input", recalcFromPer);
+["aVal", "aUnit", "pUnit"].forEach(id => document.getElementById(id).addEventListener("input", recalcFromTotal));
+document.getElementById("pTitle").addEventListener("input", paint);
+
+/* ---- Type-specific fields ---- */
+const FIELDS = {
+  residential: [["Bedrooms", "3"], ["Bathrooms", "3"], ["Balconies", "2"], ["Floor", "12 of 22"], ["Furnishing", "Semi-furnished"], ["Facing", "West"]],
+  commercial:  [["Frontage (ft)", "22"], ["Washrooms", "4"], ["Floor", "9 of 14"], ["Fit-out", "Bare shell"], ["Parking bays", "8"], ["Power (kVA)", "60"]],
+  agricultural:[["Water source", "Open well"], ["Soil type", "Red loam"], ["Current crop", "Rice"], ["Road access", "Tarred"], ["Fencing", "3 sides"], ["7/12 status", "Clear"]],
+  industrial:  [["Clear height (m)", "9"], ["Floor load (T/sqm)", "5"], ["Dock levellers", "2"], ["Driveway (ft)", "40"], ["Power (kVA)", "250"], ["Fire NOC", "Yes"]],
+  educational: [["Classrooms", "24"], ["Capacity", "1,100"], ["Labs", "3"], ["Playground", "Yes"], ["Bus bay", "Yes"], ["Floors", "G + 3"]],
+  plot:        [["Plot facing", "East"], ["Road width (ft)", "30"], ["NA sanctioned", "Yes"], ["Corner plot", "No"], ["Boundary wall", "Yes"], ["Layout approval", "Yes"]]
+};
+const AMEN = {
+  residential: ["Sea view", "Gym", "Clubhouse", "Lift", "Power backup", "Covered parking", "24x7 security", "Swimming pool", "Pet friendly"],
+  commercial:  ["Central AC", "Service lift", "DG backup", "Fire compliant", "Visitor parking", "Cafeteria"],
+  agricultural:["Well water", "Borewell", "Road touch", "Fenced", "Electricity", "Hill view"],
+  industrial:  ["Dock levellers", "24x7 access", "Weighbridge", "Fire NOC", "Truck parking"],
+  educational: ["Assembly hall", "Playground", "Lab block", "Bus bay", "Lift", "Canteen"],
+  plot:        ["Gated layout", "NA sanctioned", "Water line", "Street lighting", "Corner plot"]
+};
+function renderTypeFields() {
+  const t = document.getElementById("pType").value;
+  document.getElementById("typeHint").textContent = DEMO.types.find(x => x.key === t).label + " fields";
+  document.getElementById("typeFields").innerHTML = FIELDS[t].map(([l, v]) =>
+    `<div class="field"><label class="label">${l}</label><input class="input" value="${v}"></div>`).join("");
+  document.getElementById("amen").innerHTML = AMEN[t].map((a, i) =>
+    `<button class="chip ${i < 4 ? "on" : ""}" onclick="this.classList.toggle('on')">${a}</button>`).join("");
+}
+document.getElementById("pType").addEventListener("change", renderTypeFields);
+
+/* ---- Visibility ---- */
+document.getElementById("visBox").innerHTML = `
+  <div class="field"><label class="label">Who can see this listing</label>
+    <select class="select">
+      <option>Public — show on the website</option>
+      <option>Internal — team only</option>
+      <option>Private — only me and the owner</option>
+    </select></div>
+  <div class="field"><label class="label">Status</label>
+    <select class="select" ${isAdmin() ? "" : "disabled"}>
+      ${isAdmin() ? "<option>Available</option><option>Draft</option><option>Reserved</option>"
+                  : "<option>Pending approval</option>"}
+    </select>
+    ${isAdmin() ? "" : '<span class="hint">Only an owner or admin can set a listing to Available.</span>'}</div>
+  <div class="field"><label class="label">Assign to</label>
+    <select class="select">${DEMO.people.filter(p=>isAdmin()||p.id===M.id).map(p=>`<option ${p.id===M.id?"selected":""}>${p.name}</option>`).join("")}</select></div>
+  <div class="field"><label class="label">Seller contact <span class="badge badge-critical" style="margin-left:4px">Never public</span></label>
+    <input class="input" placeholder="Owner name and phone"></div>`;
+
+/* ---- Thumbs ---- */
+document.getElementById("thumbs").innerHTML = [
+  "photo-1522708323590-d24dbb6b0267", "photo-1560448204-e02f11c3d0e2",
+  "photo-1600607687939-ce8a6c25118c", "photo-1502672260266-1c1ef2d93688"
+].map((p, i) => `<div class="thumb">
+  ${i === 0 ? '<span class="badge badge-gold tag">Cover</span>' : ""}
+  <div class="photo"><img src="https://images.unsplash.com/${p}?auto=format&fit=crop&w=400&q=60" alt="" onerror="this.remove()"></div>
+</div>`).join("");
+
+renderTypeFields();
+recalcFromTotal();
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property · Shree Estates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/theme.css">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body class="site">
+
+<header class="site-head">
+  <div class="container inner">
+    <a class="logo" href="index.html">
+      <span class="logo-mark">SE</span>
+      <span><span class="logo-name">Shree Estates</span><br><span class="logo-sub">Mumbai · Thane · Pune</span></span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html#listings">Properties</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#contact">Contact</a>
+      <a class="btn btn-sm btn-primary" href="login.html">Team Login</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container" style="padding-top:18px">
+  <a href="index.html#listings" class="small sec">← Back to all properties</a>
+  <div class="gallery" id="gallery" style="margin-top:12px"></div>
+
+  <div class="detail-grid">
+    <div id="detail"></div>
+
+    <aside class="sticky-cta">
+      <div class="enq-card">
+        <form id="enqForm" onsubmit="return submitEnquiry(event)">
+          <h3>Interested in this property?</h3>
+          <p id="enqTitle" style="font-weight:600;color:#fff;margin:6px 0 2px"></p>
+          <p style="margin-bottom:14px">Reference <span id="enqProp" class="num"></span> · An advisor will call you back, usually within 30 minutes.</p>
+          <div class="grid" style="gap:10px">
+            <div class="field"><label class="label" for="eq-name">Your name</label><input class="input" id="eq-name" required placeholder="Full name"></div>
+            <div class="field"><label class="label" for="eq-phone">Phone</label><input class="input" id="eq-phone" required placeholder="+91 XXXXX XXXXX"></div>
+            <div class="field"><label class="label" for="eq-msg">Message <span style="font-weight:400">(optional)</span></label><textarea class="textarea" id="eq-msg" rows="2" placeholder="When would you like to visit?"></textarea></div>
+            <button class="btn btn-gold btn-block btn-lg" type="submit">I'm Interested</button>
+            <p style="font-size:.72rem;color:#93B5AE;margin:0">By submitting you agree to be contacted about this property. We never share your number.</p>
+          </div>
+        </form>
+        <div id="enqDone" class="hide">
+          <h3>Thanks, <span id="enqDoneName"></span> ✓</h3>
+          <p style="margin-top:8px">Your enquiry has been sent to the advisor handling this property. You'll get a WhatsApp confirmation in a moment and a call shortly.</p>
+          <div class="enq-success" style="margin-top:12px">
+            <b>What just happened behind the scenes</b><br>
+            A lead was created in the CRM, assigned to the listing advisor, tagged <span class="num">source = website</span>, and a WhatsApp template went out to you and an alert to them.
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-pad" style="margin-top:14px">
+        <div class="row" style="gap:10px">
+          <span style="font-size:1.3rem">📞</span>
+          <div class="grow">
+            <div class="bold small">Prefer to talk?</div>
+            <div class="sec tiny">Mon–Sat, 10 am – 8 pm</div>
+          </div>
+        </div>
+        <a class="btn btn-block" href="tel:+919820011223" style="margin-top:10px">+91 98200 11223</a>
+        <a class="btn btn-block" href="#" style="margin-top:8px" onclick="alert('Demo only.');return false">Share on WhatsApp</a>
+      </div>
+
+      <div class="demo-note" style="margin-top:14px">
+        🎬 <b>Demo</b> — nothing is submitted. In the live product this form is rate-limited, captcha-protected and writes straight into the CRM.
+      </div>
+    </aside>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><div><h2>Similar properties</h2><p>Based on type and location.</p></div></div>
+    <div class="listgrid" id="similar"></div>
+  </section>
+</div>
+
+<footer class="site-foot">
+  <div class="container">
+    <div class="foot-bottom" style="border:0;margin:0;padding:0">
+      <span>© 2026 Shree Estates. Demo build — all data is fictional.</span>
+      <a href="login.html">Team login</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/site.js"></script>
+<script>initDetail();</script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+<style>
+  .tree { display:flex; flex-direction:column; gap:10px; }
+  .tnode { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border);
+           border-radius:var(--r-md); background:var(--surface-1); }
+  .tkids { margin-left:26px; padding-left:18px; border-left:2px solid var(--border); display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+  .keycode { font-family:var(--font-num); letter-spacing:.06em; font-weight:700; font-size:.82rem; }
+</style>
+</head>
+<body class="console" data-page="team">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div><h1>Team</h1><div class="sub">6 team members · 2 requests waiting · 3 active invite keys</div></div>
+      <div class="row" style="gap:8px">
+        <button class="btn btn-sm" onclick="alert('Demo only.')">Export</button>
+        <button class="btn btn-primary btn-sm" onclick="alert('Demo only — generates a key and shows it once.')">+ Generate invite key</button>
+      </div>
+    </div>
+
+    <!-- Requests -->
+    <div class="card" style="margin-bottom:16px;border-color:#E8D5AC">
+      <div class="card-head" style="background:var(--gold-100);border-radius:var(--r-lg) var(--r-lg) 0 0">
+        <h3>⏳ Membership requests</h3><span class="badge badge-gold">2 waiting</span>
+      </div>
+      <div class="card-body grid" style="gap:10px" id="reqs"></div>
+      <div class="card-foot small sec">
+        Until you approve, these accounts have no organisation attached — the database returns nothing for every table they query. Approving sets their level, their manager and their commission bracket.
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="stack" style="gap:16px">
+
+        <div class="card">
+          <div class="card-head"><h3>Team members</h3>
+            <div class="chipset">
+              <button class="chip on" onclick="setTeamView(this,'table')">Table</button>
+              <button class="chip" onclick="setTeamView(this,'tree')">Hierarchy</button>
+            </div></div>
+          <div id="teamTable" class="table-wrap"><table class="tbl" id="tbl"></table></div>
+          <div id="teamTree" class="card-body hide"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Invite keys</h3><span class="badge badge-outline">Revocable at any time</span></div>
+          <div class="table-wrap"><table class="tbl" id="keys"></table></div>
+          <div class="card-foot small sec">
+            The plain key is shown once at creation; only a hash is stored. A revoked key blocks new joins and does not affect anyone already approved.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="stack" style="gap:16px">
+        <div class="card">
+          <div class="card-head"><h3>Employee levels</h3><span class="badge badge-gold">Owner only</span></div>
+          <div class="card-body grid" style="gap:10px" id="levels"></div>
+          <div class="card-foot"><button class="btn btn-sm btn-block" onclick="alert('Demo only.')">+ Add a level</button></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>What each level can do</h3></div>
+          <div class="table-wrap"><table class="tbl" id="perms"></table></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Recent audit</h3></div>
+          <div id="audit" style="padding:4px 0"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+if (!isAdmin()) location.replace("member.html");
+
+/* ---- Requests ---- */
+document.getElementById("reqs").innerHTML = DEMO.pendingRequests.map(r => `
+  <div class="row wrap" style="gap:12px;padding:12px;border:1px solid var(--border);border-radius:var(--r-md)">
+    <span class="avatar" style="background:#8A9793">${initials(r.name)}</span>
+    <div class="stack grow" style="min-width:180px">
+      <span class="bold small">${esc(r.name)}</span>
+      <span class="tiny muted">${esc(r.email)} · ${esc(r.phone)}</span>
+      <span class="tiny sec" style="margin-top:3px">“${esc(r.note)}”</span>
+    </div>
+    <div class="stack" style="min-width:150px">
+      <span class="tiny muted">Used key</span>
+      <span class="keycode">${r.key}</span>
+      <span class="tiny muted">${fmtTime(r.requestedAt)}</span>
+    </div>
+    <div class="row" style="gap:6px">
+      <select class="select btn-sm" style="width:auto">${DEMO.levels.map(l => `<option ${l.id === "L2" ? "selected" : ""}>${l.name}</option>`).join("")}</select>
+      <select class="select btn-sm" style="width:auto">${DEMO.people.filter(p => p.role !== "member" || p.level === "L4").map(p => `<option>${p.name}</option>`).join("")}</select>
+      <button class="btn btn-sm btn-danger" onclick="alert('Demo only.')">Reject</button>
+      <button class="btn btn-sm btn-primary" onclick="alert('Demo only — approving sets org, level and manager, then sends a welcome WhatsApp.')">Approve</button>
+    </div>
+  </div>`).join("");
+
+/* ---- Members ---- */
+const lvl = id => (DEMO.levels.find(l => l.id === id) || {}).name || "—";
+const perf = id => DEMO.leaderboard.find(p => p.id === id) || { leads: 0, deals: 0, earned: 0, conv: 0 };
+
+document.getElementById("tbl").innerHTML = `
+  <thead><tr><th>Member</th><th>Role / level</th><th>Reports to</th><th>Region</th><th class="r">Leads</th><th class="r">Deals</th><th class="r">Earned</th><th></th></tr></thead>
+  <tbody>${DEMO.people.map(p => {
+    const s = perf(p.id);
+    return `<tr>
+      <td class="row" style="gap:8px;border:0">
+        ${avatar(p.id)}
+        <div class="stack"><span class="bold small">${esc(p.name)}</span>
+          <span class="tiny muted">${esc(p.email)} · ${p.code}</span></div>
+      </td>
+      <td><span class="badge ${p.role === "owner" ? "badge-gold" : p.role === "admin" ? "badge-brand" : "badge-outline"}">${p.role === "member" ? lvl(p.level) : p.role}</span></td>
+      <td class="small">${p.reportsTo ? person(p.reportsTo).name : "—"}</td>
+      <td class="small">${p.region}</td>
+      <td class="r num">${s.leads || "—"}</td>
+      <td class="r num">${s.deals || "—"}</td>
+      <td class="r num bold">${s.earned ? fmtINR(s.earned) : "—"}</td>
+      <td class="r"><button class="btn btn-sm btn-ghost" onclick="alert('Demo only.')">Manage</button></td>
+    </tr>`;
+  }).join("")}</tbody>`;
+
+/* ---- Hierarchy ---- */
+function node(p) {
+  const kids = DEMO.people.filter(x => x.reportsTo === p.id);
+  const s = perf(p.id);
+  return `<div>
+    <div class="tnode">
+      ${avatar(p.id)}
+      <div class="stack grow"><span class="bold small">${esc(p.name)}</span>
+        <span class="tiny muted">${p.role === "member" ? lvl(p.level) : p.role.charAt(0).toUpperCase() + p.role.slice(1)} · ${p.region}</span></div>
+      ${p.role === "member" ? `<span class="badge badge-outline">${DEMO.levels.find(l => l.id === p.level).commission}% own · ${DEMO.levels.find(l => l.id === p.level).override}% override</span>` : ""}
+      <span class="tiny muted nowrap">${s.deals || 0} deals</span>
+    </div>
+    ${kids.length ? `<div class="tkids">${kids.map(node).join("")}</div>` : ""}
+  </div>`;
+}
+document.getElementById("teamTree").innerHTML =
+  `<div class="tree">${node(DEMO.people[0])}</div>
+   <p class="hint" style="margin-top:14px">A Team Lead sees their own branch and nothing else. Nobody sees upward — which is why the owner's records are invisible to the whole team without a single extra rule.</p>`;
+
+function setTeamView(btn, v) {
+  btn.parentElement.querySelectorAll(".chip").forEach(c => c.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("teamTable").classList.toggle("hide", v !== "table");
+  document.getElementById("teamTree").classList.toggle("hide", v !== "tree");
+}
+
+/* ---- Keys ---- */
+document.getElementById("keys").innerHTML = `
+  <thead><tr><th>Key</th><th>Label</th><th>Grants</th><th>Uses</th><th>Expires</th><th>Approval</th><th></th></tr></thead>
+  <tbody>${DEMO.joinKeys.map(k => `
+    <tr style="${k.active ? "" : "opacity:.55"}">
+      <td><span class="keycode">${k.code}</span></td>
+      <td class="small">${k.label}</td>
+      <td class="small">${k.role}${k.level !== "—" ? " · " + lvl(k.level) : ""}</td>
+      <td class="small num">${k.uses}</td>
+      <td class="small">${k.expires}</td>
+      <td><span class="badge ${k.approval ? "badge-good" : "badge-warn"}">${k.approval ? "Required" : "Auto"}</span></td>
+      <td class="r">${k.active
+        ? `<button class="btn btn-sm" onclick="alert('Demo only.')">Copy</button>
+           <button class="btn btn-sm btn-danger" onclick="alert('Demo only.')">Revoke</button>`
+        : `<span class="badge badge-outline">Revoked</span>`}</td>
+    </tr>`).join("")}</tbody>`;
+
+/* ---- Levels ---- */
+document.getElementById("levels").innerHTML = DEMO.levels.map(l => `
+  <div class="row wrap" style="gap:10px;padding:10px;border:1px solid var(--border);border-radius:var(--r-md)">
+    <span class="badge badge-brand">L${l.rank}</span>
+    <div class="stack grow" style="min-width:110px"><span class="bold small">${l.name}</span>
+      <span class="tiny muted">${DEMO.people.filter(p => p.level === l.id).length} member(s)</span></div>
+    <div class="stack right"><span class="tiny muted">Own deal</span><span class="bold num small">${l.commission}%</span></div>
+    <div class="stack right"><span class="tiny muted">Override</span><span class="bold num small">${l.override}%</span></div>
+    <button class="btn btn-sm btn-ghost" onclick="alert('Demo only.')">Edit</button>
+  </div>`).join("");
+
+/* ---- Permission matrix ---- */
+const CAPS = [
+  ["See own leads", 1, 1, 1, 1, 1],
+  ["See downline", 0, 0, 0, 1, 1],
+  ["See all org data", 0, 0, 0, 0, 0],
+  ["Create property", 1, 1, 1, 1, 1],
+  ["Publish property", 0, 0, 0, 0, 0],
+  ["Approve commission", 0, 0, 0, 0, 0],
+  ["Edit commission rules", 0, 0, 0, 0, 0],
+  ["Export data", 0, 0, 1, 1, 1],
+  ["Use AI on own data", 1, 1, 1, 1, 1]
+];
+document.getElementById("perms").innerHTML = `
+  <thead><tr><th>Capability</th>${DEMO.levels.map(l => `<th class="r">L${l.rank}</th>`).join("")}</tr></thead>
+  <tbody>${CAPS.map(r => `<tr><td class="small">${r[0]}</td>${r.slice(1).map(v =>
+    `<td class="r">${v ? '<span style="color:var(--good);font-weight:700">✓</span>' : '<span class="muted">—</span>'}</td>`).join("")}</tr>`).join("")}</tbody>`;
+
+/* ---- Audit ---- */
+[
+  ["Today 09:12", "Rajesh Mehta", "approved commission split DL-309 · Vikram Shah"],
+  ["Yesterday 18:40", "Automation", "created lead LD-2081 from WhatsApp (AG07)"],
+  ["Yesterday 11:05", "Anita Deshmukh", "published property PRP-1085"],
+  ["29 Sep 16:22", "Rajesh Mehta", "changed Senior Agent commission 38% → 40%"],
+  ["28 Sep 10:14", "Amit Kulkarni", "requested to join with key SHREE-8KQ2-DLM9"],
+  ["27 Sep 14:02", "Platform (dev-laptop)", "opened a 2-hour support session"]
+].forEach(([t, who, what], i, arr) => {
+  document.getElementById("audit").insertAdjacentHTML("beforeend", `
+    <div class="stack" style="padding:9px 18px;${i < arr.length - 1 ? "border-bottom:1px solid var(--border)" : ""}">
+      <span class="small"><b>${who}</b> ${what}</span>
+      <span class="tiny muted">${t}</span>
+    </div>`);
+});
+</script>
+</body>
+</html>

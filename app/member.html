@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Workspace · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="console" data-page="member">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div>
+        <h1 id="hello">My workspace</h1>
+        <div class="sub" id="subline"></div>
+      </div>
+      <div class="row wrap" style="gap:8px">
+        <select class="select" style="width:auto"><option>September 2026</option><option>August 2026</option><option>This quarter</option></select>
+        <a class="btn btn-primary btn-sm" href="property-new.html">+ Add property</a>
+      </div>
+    </div>
+
+    <div class="demo-note" style="margin-bottom:16px">
+      🔒 <b>This is the isolation in action.</b> Ravi is a Senior Agent. Every number on this page is his own — the owner's leads, other agents' deals and the company's total brokerage are not hidden from the interface, they are never returned by the database. Compare with the Owner view from the login screen.
+    </div>
+
+    <div class="grid g-kpi" style="margin-bottom:16px" id="kpis"></div>
+
+    <div class="split" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head"><h3>My pipeline</h3><a class="btn btn-sm btn-ghost" href="leads.html">Open board →</a></div>
+        <div class="table-wrap"><table class="tbl" id="myLeads"></table></div>
+      </div>
+      <div class="stack" style="gap:16px">
+        <div class="card">
+          <div class="card-head"><h3>Today &amp; overdue</h3></div>
+          <div id="today" style="padding:4px 0"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>✨ Ask the AI</h3></div>
+          <div class="card-body">
+            <p class="small sec">Your AI answers over <b>your data only</b>. It cannot see the company total or another agent's pipeline.</p>
+            <a class="btn btn-primary btn-block btn-sm" href="ai.html" style="margin-top:10px">How am I doing this month?</a>
+            <a class="btn btn-block btn-sm" href="ai.html" style="margin-top:8px">Which of my leads will close?</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="card-head"><h3>My commission</h3><a class="btn btn-sm btn-ghost" href="commissions.html">Details →</a></div>
+        <div class="table-wrap"><table class="tbl" id="myComm"></table></div>
+        <div class="card-foot small sec">You see your own lines only. The deal's total brokerage, the house share and other participants' amounts are not returned to your account.</div>
+      </div>
+
+      <div class="stack" style="gap:16px">
+        <div class="card">
+          <div class="card-head"><h3>Properties I posted</h3></div>
+          <div id="myProps" style="padding:4px 0"></div>
+        </div>
+        <div class="card card-pad">
+          <h3 style="margin-bottom:8px">What I can't see</h3>
+          <div class="locked" style="text-align:left">
+            <div style="margin-bottom:7px">🚫 The owner's and admin's leads and deals</div>
+            <div style="margin-bottom:7px">🚫 Other agents' pipelines and earnings</div>
+            <div style="margin-bottom:7px">🚫 Total company brokerage and the house share</div>
+            <div style="margin-bottom:7px">🚫 Commission rules and member levels (owner-only)</div>
+            <div>🚫 Approving my own commission — only an admin can move a payment status</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+if (isAdmin()) location.replace("dashboard.html");
+
+const M = me();
+const lvl = DEMO.levels.find(l => l.id === M.level);
+document.getElementById("hello").textContent = "Good morning, " + M.name.split(" ")[0];
+document.getElementById("subline").innerHTML =
+  `${lvl.name} · ${M.region} · reports to ${person(M.reportsTo).name}
+   <span class="badge badge-outline">Agent code ${M.code}</span>
+   <span class="badge badge-brand">Your data only</span>`;
+
+const mine = DEMO.leads.filter(l => l.owner === M.id);
+const mySplits = DEMO.deals.flatMap(d => d.splits.filter(s => s.id === M.id).map(s => ({ ...s, deal: d })));
+const earned = mySplits.reduce((a, s) => a + s.amt, 0);
+const paid = mySplits.filter(s => s.status === "paid").reduce((a, s) => a + s.amt, 0);
+
+document.getElementById("kpis").innerHTML = [
+  { l: "My open leads", v: mine.filter(l => !l.stage.startsWith("closed")).length, f: `${mine.length} total this quarter` },
+  { l: "Site visits", v: "14", f: "Best visit rate on the team" },
+  { l: "Deals closed", v: mySplits.length, f: "September 2026" },
+  { l: "My commission", v: fmtINR(earned), f: `${fmtINR(paid)} paid · ${fmtINR(earned - paid)} pending` },
+  { l: "Follow-ups due", v: "4", f: '<span class="delta-down">1 overdue</span>' }
+].map(k => `<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-foot">${k.f}</div></div>`).join("");
+
+const stageLabel = k => (DEMO.stages.find(s => s.key === k) || {}).label || k;
+const stageColor = k => (DEMO.stages.find(s => s.key === k) || {}).color || "#888";
+
+document.getElementById("myLeads").innerHTML = `
+  <thead><tr><th>Lead</th><th>Requirement</th><th>Stage</th><th>Next follow-up</th></tr></thead>
+  <tbody>${mine.map(l => `
+    <tr>
+      <td><span class="bold small">${esc(l.name)}</span><div class="tiny muted num">${l.id} · ${esc(l.phone)}</div></td>
+      <td class="small">${esc(l.config)} · ${esc(l.locality)}<div class="tiny muted">${esc(l.budget)}</div></td>
+      <td><span class="badge" style="background:${stageColor(l.stage)}1a;color:${stageColor(l.stage)}">${stageLabel(l.stage)}</span></td>
+      <td class="small">${l.next ? fmtTime(l.next) : "—"}</td>
+    </tr>`).join("")}</tbody>`;
+
+document.getElementById("today").innerHTML = [
+  { t: "Overdue · yesterday 6:00 PM", n: "Arjun Reddy", d: "Site visit feedback call — PRP-1042", late: true },
+  { t: "Today 5:00 PM", n: "Rahul Sharma", d: "Confirm Saturday site visit", late: false },
+  { t: "Tomorrow 11:00 AM", n: "Kavita Menon", d: "Share registry paperwork", late: false },
+  { t: "Fri 4:00 PM", n: "Arjun Reddy", d: "Negotiation follow-up", late: false }
+].map(x => `
+  <div class="row" style="padding:10px 18px;border-bottom:1px solid var(--border)">
+    <span style="width:4px;height:34px;border-radius:3px;background:${x.late ? "var(--critical)" : "var(--brand-500)"};flex:none"></span>
+    <div class="stack grow"><span class="small bold">${x.n}</span><span class="tiny muted">${x.d}</span></div>
+    <span class="tiny ${x.late ? "" : "muted"}" style="${x.late ? "color:var(--critical);font-weight:650" : ""}">${x.t}</span>
+  </div>`).join("");
+
+const stBadge = { expected: "badge-outline", approved: "badge-info", received: "badge-warn", paid: "badge-good" };
+document.getElementById("myComm").innerHTML = `
+  <thead><tr><th>Deal</th><th>Role</th><th class="r">My share</th><th>Status</th></tr></thead>
+  <tbody>${mySplits.map(s => `
+    <tr>
+      <td><span class="bold small">${s.deal.id}</span><div class="tiny muted">${esc(s.deal.leadName)}</div></td>
+      <td class="small">${esc(s.role)}<div class="tiny muted">${s.pct}% of brokerage</div></td>
+      <td class="r num bold">${fmtINR(s.amt)}</td>
+      <td><span class="badge ${stBadge[s.status]}">${s.status}</span></td>
+    </tr>`).join("")}
+    <tr><td colspan="2" class="bold">Total</td><td class="r num bold">${fmtINR(earned)}</td><td></td></tr>
+  </tbody>`;
+
+document.getElementById("myProps").innerHTML = DEMO.properties.filter(p => p.postedBy === M.id).map(p => `
+  <div class="row" style="padding:10px 18px;border-bottom:1px solid var(--border)">
+    <div class="photo" style="width:52px;height:40px;border-radius:7px;flex:none">
+      <img src="${p.photos[0]}" alt="" loading="lazy" onerror="this.remove()"></div>
+    <div class="stack grow"><span class="small bold">${esc(p.title)}</span>
+      <span class="tiny muted">${p.id} · ${esc(p.locality)} · posted ${fmtDate(p.postedOn)}</span></div>
+    <div class="stack right"><span class="small bold">${fmtINR(p.price)}</span>
+      <span class="tiny muted">${p.enquiries} enquiries</span></div>
+  </div>`).join("") || '<div class="empty small">No properties posted yet.</div>';
+</script>
+</body>
+</html>

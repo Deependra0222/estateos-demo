@@ -1,0 +1,4 @@
+# This is a product demo populated with fictional data.
+# "Shree Estates" is not a real company. Do not index.
+User-agent: *
+Disallow: /

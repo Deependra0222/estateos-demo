@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Properties · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="console" data-page="properties">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div>
+        <h1>Properties</h1>
+        <div class="sub"><span id="count">12</span> listings · <span id="scopeNote"></span></div>
+      </div>
+      <div class="row" style="gap:8px">
+        <button class="btn btn-sm" onclick="alert('Demo only — exports CSV/XLSX in the live product.')">Export</button>
+        <a class="btn btn-primary btn-sm" href="property-new.html">+ Add property</a>
+      </div>
+    </div>
+
+    <div id="approvalBox"></div>
+
+    <div class="filterbar">
+      <input class="input wide" id="q" placeholder="Search title, locality, code…">
+      <select class="select" id="ftype"></select>
+      <select class="select" id="flisting">
+        <option value="">Sale &amp; rent</option><option value="sale">For sale</option>
+        <option value="rent">For rent</option><option value="lease">For lease</option>
+      </select>
+      <select class="select" id="fstatus">
+        <option value="">Any status</option><option value="available">Available</option>
+        <option value="reserved">Reserved</option><option value="under_offer">Under offer</option>
+      </select>
+      <select class="select" id="fregion"><option value="">All regions</option><option>Mumbai West</option><option>Thane</option><option>Pune</option></select>
+      <select class="select" id="fby"><option value="">Posted by anyone</option></select>
+      <input class="input" id="fmin" type="number" placeholder="Min size">
+      <select class="select" id="funit"></select>
+      <select class="select" id="fsort">
+        <option value="new">Newest</option><option value="priceDesc">Price high→low</option>
+        <option value="priceAsc">Price low→high</option><option value="enq">Most enquiries</option>
+      </select>
+      <button class="btn btn-sm btn-ghost" onclick="clearAll()">Clear</button>
+      <div class="chipset" style="margin-left:auto">
+        <button class="chip on" id="vGrid" onclick="setView('grid')">Grid</button>
+        <button class="chip" id="vTable" onclick="setView('table')">Table</button>
+      </div>
+    </div>
+
+    <div id="gridView" class="grid g-cards"></div>
+    <div id="tableView" class="card hide"><div class="table-wrap"><table class="tbl" id="tbl"></table></div></div>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+const UNIT_SHORT = { sqft: "sq ft", sqm: "sq m", sqyd: "gaj", acre: "acre", guntha: "guntha", bigha: "bigha", hectare: "hectare" };
+const TYPE_LABEL = Object.fromEntries(DEMO.types.map(t => [t.key, t.label]));
+const STATUS = { available: ["badge-good", "Available"], reserved: ["badge-warn", "Reserved"], under_offer: ["badge-info", "Under offer"], sold: ["badge-outline", "Sold"] };
+let view = "grid";
+
+document.getElementById("scopeNote").innerHTML = isAdmin()
+  ? 'shared inventory — <span class="badge badge-brand">you can edit and publish any listing</span>'
+  : 'shared inventory — <span class="badge badge-outline">you can edit only your own; publishing needs owner approval</span>';
+
+document.getElementById("ftype").innerHTML = '<option value="">Any type</option>' + DEMO.types.map(t => `<option value="${t.key}">${t.label}</option>`).join("");
+document.getElementById("funit").innerHTML = DEMO.areaUnits.map(u => `<option value="${u.code}">${u.label}</option>`).join("");
+document.getElementById("fby").innerHTML = '<option value="">Posted by anyone</option>' + DEMO.people.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+
+/* Owner-only: pending approval queue */
+if (isAdmin()) {
+  document.getElementById("approvalBox").innerHTML = `
+    <div class="card" style="margin-bottom:14px;border-color:#E8D5AC">
+      <div class="card-head" style="background:var(--gold-100);border-radius:var(--r-lg) var(--r-lg) 0 0">
+        <h3>⏳ 2 listings waiting for your approval</h3>
+        <span class="badge badge-gold">Owner / admin only</span>
+      </div>
+      <div class="card-body" style="display:grid;gap:10px">
+        ${[
+          { t: "3 BHK, Chembur East", by: "u6", price: 21500000, when: "2 hours ago" },
+          { t: "Shop 420 sq ft, Kalyan", by: "u7", price: 8900000, when: "yesterday" }
+        ].map(x => `
+          <div class="row wrap" style="gap:10px;padding:10px;border:1px solid var(--border);border-radius:var(--r-md)">
+            ${avatar(x.by, "avatar-sm")}
+            <div class="stack grow"><span class="small bold">${x.t}</span>
+              <span class="tiny muted">Submitted by ${person(x.by).name} · ${x.when} · ${fmtINR(x.price)}</span></div>
+            <button class="btn btn-sm" onclick="alert('Demo only.')">Review</button>
+            <button class="btn btn-sm btn-primary" onclick="alert('Demo only — in the live product this publishes the listing and writes an audit entry.')">Approve &amp; publish</button>
+          </div>`).join("")}
+      </div>
+    </div>`;
+}
+
+function setView(v) {
+  view = v;
+  document.getElementById("vGrid").classList.toggle("on", v === "grid");
+  document.getElementById("vTable").classList.toggle("on", v === "table");
+  document.getElementById("gridView").classList.toggle("hide", v !== "grid");
+  document.getElementById("tableView").classList.toggle("hide", v !== "table");
+  render();
+}
+function clearAll() {
+  ["q", "ftype", "flisting", "fstatus", "fregion", "fby", "fmin"].forEach(id => document.getElementById(id).value = "");
+  render();
+}
+
+function filtered() {
+  const g = id => document.getElementById(id).value;
+  const q = g("q").toLowerCase(), unit = g("funit") || "sqft";
+  const minS = (parseFloat(g("fmin")) || 0) * (DEMO.areaUnits.find(u => u.code === unit) || { f: 1 }).f;
+  let rows = DEMO.properties.filter(p =>
+    (!q || (p.title + p.locality + p.city + p.id).toLowerCase().includes(q)) &&
+    (!g("ftype") || p.type === g("ftype")) &&
+    (!g("flisting") || p.listing === g("flisting")) &&
+    (!g("fstatus") || p.status === g("fstatus")) &&
+    (!g("fregion") || p.region === g("fregion")) &&
+    (!g("fby") || p.postedBy === g("fby")) &&
+    (!minS || sqft(p.area, p.unit) >= minS));
+  const s = g("fsort");
+  rows.sort({ new: (a, b) => b.postedOn.localeCompare(a.postedOn), priceDesc: (a, b) => b.price - a.price,
+              priceAsc: (a, b) => a.price - b.price, enq: (a, b) => b.enquiries - a.enquiries }[s]);
+  return rows;
+}
+
+function card(p) {
+  const canEdit = isAdmin() || p.postedBy === me().id;
+  return `<div class="pcard">
+    <div style="position:relative">
+      <div class="photo" style="aspect-ratio:16/10"><img src="${p.photos[0]}" alt="" loading="lazy" onerror="this.remove()"></div>
+      <div class="photo-tags">
+        <span class="badge">${TYPE_LABEL[p.type]}</span>
+        <span class="badge">${p.listing === "sale" ? "Sale" : "Rent"}</span>
+      </div>
+    </div>
+    <div class="pcard-body">
+      <div class="between">
+        <span class="badge ${STATUS[p.status][0]}">${STATUS[p.status][1]}</span>
+        <span class="tiny muted num">${p.id}</span>
+      </div>
+      <div class="pcard-title">${esc(p.title)}</div>
+      <div class="pcard-loc">📍 ${esc(p.locality)}, ${esc(p.city)}</div>
+      <div>
+        <div class="pcard-price">${p.listing === "sale" ? fmtINR(p.price) : fmtINR(p.price, { exact: true }) + " /mo"}</div>
+        <div class="pcard-per">₹${indian(p.perUnit)} per ${UNIT_SHORT[p.priceUnit]} · ${areaNum(p.area)} ${UNIT_SHORT[p.unit]}</div>
+      </div>
+      <div class="pcard-meta">
+        <span>👁 ${p.views}</span><span>✉ ${p.enquiries}</span>
+        ${p.beds ? `<span>🛏 ${p.beds}</span>` : ""}
+      </div>
+      <div class="between" style="margin-top:2px">
+        <span class="pcard-by">${avatar(p.postedBy, "avatar-sm")} ${esc(person(p.postedBy).name.split(" ")[0])} · ${fmtDateShort(p.postedOn)}</span>
+        <span class="row-tight">
+          <a class="btn btn-sm btn-ghost" href="../property.html?id=${p.id}" target="_blank">View</a>
+          <button class="btn btn-sm ${canEdit ? "" : "is-disabled"}" onclick="alert('Demo only.')" ${canEdit ? "" : "disabled"}>Edit</button>
+        </span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const rows = filtered();
+  document.getElementById("count").textContent = rows.length;
+  if (view === "grid") {
+    document.getElementById("gridView").innerHTML = rows.map(card).join("") ||
+      '<div class="empty" style="grid-column:1/-1">No properties match those filters.</div>';
+  } else {
+    document.getElementById("tbl").innerHTML = `
+      <thead><tr><th>Property</th><th>Type</th><th class="r">Size</th><th class="r">Price</th>
+      <th class="r">₹ / unit</th><th>Status</th><th>Posted by</th><th class="r">Enquiries</th></tr></thead>
+      <tbody>${rows.map(p => `<tr>
+        <td><span class="bold small">${esc(p.title)}</span><div class="tiny muted">${p.id} · ${esc(p.locality)}</div></td>
+        <td class="small">${TYPE_LABEL[p.type]}</td>
+        <td class="r num">${areaNum(p.area)} ${UNIT_SHORT[p.unit]}<div class="tiny muted">${indian(sqft(p.area, p.unit))} sq ft</div></td>
+        <td class="r num bold">${fmtINR(p.price)}</td>
+        <td class="r num">₹${indian(p.perUnit)}<div class="tiny muted">per ${UNIT_SHORT[p.priceUnit]}</div></td>
+        <td><span class="badge ${STATUS[p.status][0]}">${STATUS[p.status][1]}</span></td>
+        <td>${avatar(p.postedBy, "avatar-sm")}</td>
+        <td class="r num">${p.enquiries}</td></tr>`).join("")}</tbody>`;
+  }
+}
+
+["q", "ftype", "flisting", "fstatus", "fregion", "fby", "fmin", "funit", "fsort"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener(el.tagName === "SELECT" ? "change" : "input", render);
+});
+render();
+</script>
+</body>
+</html>

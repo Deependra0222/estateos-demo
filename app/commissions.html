@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deals &amp; Commission · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+<style>
+  .dealhead { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; }
+  .calcbox { background:var(--brand-050); border:1px solid var(--brand-100); border-radius:var(--r-md); padding:12px 14px; }
+  .calcrow { display:flex; justify-content:space-between; font-size:.84rem; padding:3px 0; }
+  .calcrow.total { border-top:1px solid var(--brand-100); margin-top:6px; padding-top:8px; font-weight:700; font-size:.95rem; }
+</style>
+</head>
+<body class="console" data-page="commissions">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div><h1>Deals &amp; Commission</h1><div class="sub" id="sub"></div></div>
+      <div class="row" style="gap:8px">
+        <select class="select btn-sm" style="width:auto"><option>FY 2026-27</option><option>FY 2025-26</option></select>
+        <button class="btn btn-sm" onclick="alert('Demo only.')">Export ledger</button>
+        <button class="btn btn-primary btn-sm" onclick="alert('Demo only.')">+ New deal</button>
+      </div>
+    </div>
+
+    <div class="grid g-kpi" style="margin-bottom:16px" id="kpis"></div>
+
+    <div class="tabs" style="margin-bottom:14px">
+      <button class="tab active" onclick="tab(this,'deals')">Deals</button>
+      <button class="tab" onclick="tab(this,'ledger')">Commission ledger</button>
+      <button class="tab" onclick="tab(this,'ageing')">Ageing</button>
+      <button class="tab" onclick="tab(this,'rules')">Commission rules</button>
+    </div>
+
+    <section id="pane-deals"></section>
+    <section id="pane-ledger" class="hide"></section>
+    <section id="pane-ageing" class="hide"></section>
+    <section id="pane-rules" class="hide"></section>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+const M = me(), ADMIN = isAdmin();
+const DEALS = ADMIN ? DEMO.deals : DEMO.deals.filter(d => d.splits.some(s => s.id === M.id));
+const STATUSES = ["expected", "approved", "received", "paid"];
+const stBadge = { expected: "badge-outline", approved: "badge-info", received: "badge-warn", paid: "badge-good", cancelled: "badge-critical" };
+
+document.getElementById("sub").innerHTML = ADMIN
+  ? 'Every deal, every participant, full economics · <span class="badge badge-brand">Owner view</span>'
+  : 'Your commission lines only · <span class="badge badge-outline">deal totals and the house share are not returned to your account</span>';
+
+/* ---- KPIs ---- */
+const allSplits = DEALS.flatMap(d => d.splits.filter(s => ADMIN || s.id === M.id));
+const sum = st => allSplits.filter(s => s.status === st).reduce((a, s) => a + s.amt, 0);
+const gross = ADMIN ? DEALS.reduce((a, d) => a + d.brokerage, 0) : allSplits.reduce((a, s) => a + s.amt, 0);
+
+document.getElementById("kpis").innerHTML = [
+  { l: ADMIN ? "Total brokerage" : "My commission", v: fmtINR(gross), f: `${DEALS.length} deals` },
+  { l: "Expected", v: fmtINR(sum("expected")), f: "awaiting approval" },
+  { l: "Approved", v: fmtINR(sum("approved")), f: "awaiting receipt" },
+  { l: "Received", v: fmtINR(sum("received")), f: ADMIN ? "in the company account" : "awaiting payout" },
+  { l: "Paid", v: fmtINR(sum("paid")), f: "settled" }
+].map(k => `<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-foot">${k.f}</div></div>`).join("");
+
+function tab(btn, name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+  ["deals", "ledger", "ageing", "rules"].forEach(p =>
+    document.getElementById("pane-" + p).classList.toggle("hide", p !== name));
+}
+
+/* ---- Stepper ---- */
+function stepper(status) {
+  const i = STATUSES.indexOf(status);
+  const label = STATUSES.map((s, n) => (n <= i ? "✓ " : "○ ") + s).join("  →  ");
+  return `<div class="steps" title="${label}">` + STATUSES.map((s, n) => `
+    ${n ? `<span class="step-line ${n <= i ? "done" : ""}"></span>` : ""}
+    <span class="step ${n < i ? "done" : n === i ? "now" : ""}" aria-label="${s}">
+      <span class="bullet">${n <= i ? "✓" : ""}</span>
+    </span>`).join("") + `</div>`;
+}
+
+/* ---- Deals ---- */
+document.getElementById("pane-deals").innerHTML = DEALS.map(d => {
+  const shown = ADMIN ? d.splits : d.splits.filter(s => s.id === M.id);
+  return `<div class="card" style="margin-bottom:14px">
+    <div class="card-head">
+      <div class="row" style="gap:10px">
+        <span class="badge badge-brand">${d.id}</span>
+        <div class="stack"><span class="bold">${esc(d.property)}</span>
+          <span class="tiny muted">${esc(d.leadName)} · closed ${fmtDate(d.closedOn)} by ${person(d.closedBy).name} · ${d.region}</span></div>
+      </div>
+      <span class="badge ${d.stage === "registered" ? "badge-good" : "badge-warn"}">${d.stage}</span>
+    </div>
+    <div class="card-body">
+      ${ADMIN ? `
+      <div class="dealhead" style="margin-bottom:14px">
+        <div><div class="upper">Deal value</div><div class="bold num" style="font-size:1.1rem">${fmtINR(d.value)}</div></div>
+        <div><div class="upper">${d.brokerageType === "flat" ? "Brokerage" : "Brokerage %"}</div><div class="bold num" style="font-size:1.1rem">${d.brokerageType === "flat" ? "Flat" : d.brokeragePct + "%"}</div></div>
+        <div><div class="upper">Total commission</div><div class="bold num" style="font-size:1.1rem;color:var(--brand-700)">${fmtINR(d.brokerage)}</div></div>
+        <div><div class="upper">Participants</div><div class="bold num" style="font-size:1.1rem">${d.splits.length}</div></div>
+      </div>
+      <div class="calcbox" style="margin-bottom:14px">
+        <div class="calcrow"><span>Property value</span><span class="num">₹${indian(d.value)}</span></div>
+        <div class="calcrow"><span>${d.brokerageType === "flat" ? esc(d.brokerageNote) : "Brokerage @ " + d.brokeragePct + "%"}</span><span class="num">${d.brokerageType === "flat" ? "flat fee" : "× " + (d.brokeragePct / 100)}</span></div>
+        <div class="calcrow total"><span>Total commission</span><span class="num">₹${indian(d.brokerage)}</span></div>
+      </div>` : `
+      <div class="locked" style="margin-bottom:14px;text-align:left">
+        🔒 Deal value, brokerage percentage and the other participants' shares are not visible to your role.
+      </div>`}
+
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Participant</th><th>Role</th><th class="r">Share</th><th class="r">Amount</th><th>Status</th><th>Progress</th>${ADMIN ? "<th></th>" : ""}</tr></thead>
+          <tbody>${shown.map(s => `
+            <tr>
+              <td class="row" style="gap:7px;border:0">
+                ${s.id ? avatar(s.id, "avatar-sm") : '<span class="avatar avatar-sm" style="background:#8A9793">EX</span>'}
+                <span class="small bold">${esc(s.who)}</span>
+              </td>
+              <td class="small">${esc(s.role)}</td>
+              <td class="r num">${s.pct}%</td>
+              <td class="r num bold">${fmtINR(s.amt)}</td>
+              <td><span class="badge ${stBadge[s.status]}">${s.status}</span></td>
+              <td>${stepper(s.status)}</td>
+              ${ADMIN ? `<td class="r"><button class="btn btn-sm" onclick="alert('Demo only — this moves the status forward and writes an immutable history row.')">Advance →</button></td>` : ""}
+            </tr>`).join("")}</tbody>
+        </table>
+      </div>
+      <div class="hint" style="margin-top:10px">Progress dots read <b>Expected → Approved → Received → Paid</b>.</div>
+      ${!ADMIN ? '<div class="hint" style="margin-top:4px">Only an owner or admin can move a commission status. The database rejects the write from your role even via a direct API call.</div>' : ""}
+    </div>
+  </div>`;
+}).join("");
+
+/* ---- Ledger ---- */
+const perPerson = {};
+DEALS.forEach(d => d.splits.forEach(s => {
+  if (!s.id || (!ADMIN && s.id !== M.id)) return;
+  perPerson[s.id] = perPerson[s.id] || { expected: 0, approved: 0, received: 0, paid: 0 };
+  perPerson[s.id][s.status] += s.amt;
+}));
+document.getElementById("pane-ledger").innerHTML = `
+  <div class="card"><div class="card-head"><h3>Commission ledger by person</h3>
+    <span class="badge badge-outline">FY 2026-27</span></div>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Person</th><th>Level</th><th class="r">Expected</th><th class="r">Approved</th><th class="r">Received</th><th class="r">Paid</th><th class="r">Outstanding</th></tr></thead>
+    <tbody>${Object.entries(perPerson).map(([id, v]) => {
+      const p = person(id), out = v.expected + v.approved + v.received;
+      return `<tr>
+        <td class="row" style="gap:7px;border:0">${avatar(id, "avatar-sm")}<span class="small bold">${p.name}</span></td>
+        <td class="small">${p.level ? DEMO.levels.find(l => l.id === p.level).name : p.role}</td>
+        <td class="r num">${fmtINR(v.expected)}</td><td class="r num">${fmtINR(v.approved)}</td>
+        <td class="r num">${fmtINR(v.received)}</td><td class="r num">${fmtINR(v.paid)}</td>
+        <td class="r num bold" style="color:${out ? "var(--serious)" : "var(--good)"}">${fmtINR(out)}</td></tr>`;
+    }).join("")}</tbody></table></div>
+  <div class="card-foot small sec">A payout batches several settled lines into one payment with a PDF statement.</div></div>`;
+
+/* ---- Ageing ---- */
+document.getElementById("pane-ageing").innerHTML = !ADMIN ? `
+  <div class="card"><div class="card-head"><h3>My outstanding commission</h3></div>
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Deal</th><th>Role</th><th class="r">Amount</th><th>Status</th><th class="r">Days waiting</th></tr></thead>
+      <tbody>${allSplits.filter(s => s.status !== "paid").map(s => {
+        const d = DEALS.find(x => x.splits.includes(s));
+        const days = Math.round((new Date("2026-10-01") - new Date(d.closedOn)) / 86400000);
+        return `<tr><td class="bold small">${d.id}</td><td class="small">${esc(s.role)}</td>
+          <td class="r num bold">${fmtINR(s.amt)}</td>
+          <td><span class="badge ${stBadge[s.status]}">${s.status}</span></td>
+          <td class="r num">${days}</td></tr>`;
+      }).join("") || '<tr><td colspan="5" class="muted small">Nothing outstanding.</td></tr>'}</tbody>
+    </table></div>
+    <div class="card-foot small sec">Only your own lines. Company-wide ageing is an owner view.</div></div>`
+  : `
+  <div class="split">
+    <div class="card"><div class="card-head"><h3>Outstanding by age</h3></div>
+      <div class="card-body"><div id="ageChart"></div></div>
+      <div class="card-foot small sec">Nothing past 60 days — healthy. The single largest exposure is DL-315 at ₹27.75 L, still only at agreement stage.</div></div>
+    <div class="card"><div class="card-head"><h3>Oldest open items</h3></div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th>Deal</th><th>Participant</th><th class="r">Amount</th><th class="r">Days</th></tr></thead>
+        <tbody>
+          <tr><td>DL-309</td><td class="small">Vikram Shah</td><td class="r num">${fmtINR(346500)}</td><td class="r num">20</td></tr>
+          <tr><td>DL-315</td><td class="small">Vikram Shah</td><td class="r num">${fmtINR(1248750)}</td><td class="r num">6</td></tr>
+          <tr><td>DL-315</td><td class="small">Ravi Sharma</td><td class="r num">${fmtINR(555000)}</td><td class="r num">6</td></tr>
+          <tr><td>DL-312</td><td class="small">Neha Joshi</td><td class="r num">${fmtINR(444000)}</td><td class="r num">2</td></tr>
+        </tbody></table></div></div>
+  </div>`;
+
+/* ---- Rules ---- */
+document.getElementById("pane-rules").innerHTML = ADMIN ? `
+  <div class="card">
+    <div class="card-head"><h3>Commission rules</h3>
+      <div class="row" style="gap:8px">
+        <span class="badge badge-gold">Only the owner can edit these</span>
+        <button class="btn btn-primary btn-sm" onclick="alert('Demo only.')">+ Add rule</button>
+      </div></div>
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Rule</th><th>Applies to</th><th>Scope</th><th class="r">Sourcing</th><th class="r">Closing</th><th class="r">Override</th><th class="r">House</th><th class="r">Total</th></tr></thead>
+      <tbody>${DEMO.commissionRules.map(r => {
+        const t = r.sourcing + r.closing + r.override + r.house;
+        return `<tr>
+          <td class="bold small">${r.name}</td>
+          <td class="small">${DEMO.levels.find(l => l.id === r.level).name}</td>
+          <td class="small muted">${r.scope}</td>
+          <td class="r num">${r.sourcing}%</td><td class="r num">${r.closing}%</td>
+          <td class="r num">${r.override}%</td><td class="r num">${r.house}%</td>
+          <td class="r"><span class="badge ${t === 100 ? "badge-good" : "badge-critical"}">${t}%</span></td></tr>`;
+      }).join("")}</tbody></table></div>
+    <div class="card-foot small sec">Rules are evaluated most-specific-first (deal-value slab → region → property type → level). Changing a rule never alters a deal that has already closed — historical splits keep the rule that was live at the time.</div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="card-head"><h3>Employee levels &amp; their commission</h3><span class="badge badge-gold">Owner only</span></div>
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Level</th><th class="r">Rank</th><th class="r">Own deal</th><th class="r">Override on downline</th><th>Permissions</th></tr></thead>
+      <tbody>${DEMO.levels.map(l => `<tr>
+        <td class="bold small">${l.name}</td><td class="r num">${l.rank}</td>
+        <td class="r num">${l.commission}%</td><td class="r num">${l.override}%</td>
+        <td class="small muted">${l.perms}</td></tr>`).join("")}</tbody></table></div>
+  </div>`
+  : `<div class="card card-pad"><div class="locked">
+       🔒 Commission rules and employee levels are visible to the owner only.<br>
+       <span class="tiny">Your own rate is shown on each of your commission lines.</span>
+     </div></div>`;
+
+if (ADMIN) {
+  hbarChart(document.getElementById("ageChart"), [
+    { k: "0–30 days", v: 4011250, sub: "4 deals" },
+    { k: "30–60 days", v: 0, sub: "nothing" },
+    { k: "60–90 days", v: 0, sub: "nothing" },
+    { k: "90+ days", v: 0, sub: "nothing" }
+  ], { valueFmt: v => fmtINR(v), color: "var(--series-2)" });
+}
+</script>
+</body>
+</html>

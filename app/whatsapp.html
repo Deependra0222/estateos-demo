@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhatsApp Inbox · EstateOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="console" data-page="whatsapp">
+
+<main class="main">
+  <div class="page">
+
+    <div class="page-head">
+      <div>
+        <h1>WhatsApp Inbox</h1>
+        <div class="sub" id="sub"></div>
+      </div>
+      <div class="row wrap" style="gap:8px">
+        <span class="badge badge-good"><span class="dot"></span> Connected · +91 98200 11223</span>
+        <button class="btn btn-sm" onclick="showTab('log')">Automation log</button>
+        <button class="btn btn-sm" onclick="showTab('formats')">Message formats</button>
+        <button class="btn btn-sm btn-primary" onclick="showTab('inbox')">Inbox</button>
+      </div>
+    </div>
+
+    <!-- INBOX -->
+    <section id="t-inbox">
+      <div class="inbox">
+        <!-- list -->
+        <div class="ib-list">
+          <div class="ib-search"><input class="input" placeholder="Search conversations…" id="cq"></div>
+          <div class="ib-items" id="convList"></div>
+        </div>
+
+        <!-- thread -->
+        <div class="ib-thread">
+          <div class="ib-head" id="thHead"></div>
+          <div class="ib-msgs" id="thMsgs"></div>
+          <div class="ib-composer" id="thComposer"></div>
+        </div>
+
+        <!-- context -->
+        <aside class="ib-ctx" id="thCtx"></aside>
+      </div>
+    </section>
+
+    <!-- AUTOMATION LOG -->
+    <section id="t-log" class="hide">
+      <div class="card">
+        <div class="card-head"><h3>Automation log</h3><span class="badge badge-outline">Last 7 days</span></div>
+        <div class="table-wrap"><table class="tbl" id="logTbl"></table></div>
+        <div class="card-foot small sec">Every inbound message, every automated send and every parsed lead is recorded with its payload. Nothing the automation does is invisible to you.</div>
+      </div>
+      <div class="grid g-2" style="margin-top:16px">
+        <div class="card"><div class="card-head"><h3>Active workflows (n8n)</h3></div>
+          <div class="card-body grid" style="gap:9px" id="wfs"></div></div>
+        <div class="card"><div class="card-head"><h3>Message templates</h3><span class="badge badge-good">7 approved by Meta</span></div>
+          <div class="card-body grid" style="gap:9px" id="tpls"></div></div>
+      </div>
+    </section>
+
+    <!-- FORMATS -->
+    <section id="t-formats" class="hide">
+      <div class="split">
+        <div class="card">
+          <div class="card-head"><h3>Text a lead straight into the CRM</h3></div>
+          <div class="card-body">
+            <p class="small sec">A team member sends this to the business number. The parser reads it, creates the lead, assigns it to them, and links the property — no app, no typing twice.</p>
+            <pre class="num" style="background:var(--surface-3);padding:14px;border-radius:var(--r-md);font-size:.8rem;overflow-x:auto;line-height:1.7">#LEAD
+Name: Rahul Sharma
+Phone: 9820011223
+Budget: 3.5Cr
+Location: Bandra West
+Config: 3BHK
+Type: Buy
+Property: PRP-1042
+Notes: wants sea view, ready to move</pre>
+            <div class="enq-success" style="margin-top:12px;background:var(--good-bg);border:1px solid #B6DFCB;color:#14543D;border-radius:var(--r-md);padding:12px;font-size:.83rem">
+              ✅ Reply within seconds: <b>Lead LD-2081 created — Arjun Reddy, ₹4.5 Cr, 3 BHK, Bandra West. Assigned to you.</b>
+            </div>
+            <p class="small sec" style="margin-top:12px">
+              <b>Got the format wrong?</b> If the message comes from a registered member but doesn't match, it goes to an AI extractor which reads it as plain language and replies with what it understood for a one-word confirmation. Nothing is silently dropped.
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Other commands</h3></div>
+          <div class="table-wrap"><table class="tbl" id="cmds"></table></div>
+          <div class="card-foot small sec">Every command is logged, attributed to the sending member, and mirrored into the owner's view.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+const CONV = myConvos();
+let active = CONV[0] ? CONV[0].id : null;
+
+document.getElementById("sub").innerHTML = isAdmin()
+  ? `All ${DEMO.conversations.length} conversations, including messages your team sends to the business number · <span class="badge badge-brand">Owner view</span>`
+  : `Your conversations only · <span class="badge badge-outline">${DEMO.conversations.length - CONV.length} other threads exist and are invisible to you</span>`;
+
+function showTab(t) {
+  ["inbox", "log", "formats"].forEach(x => document.getElementById("t-" + x).classList.toggle("hide", x !== t));
+}
+
+function renderList() {
+  const q = (document.getElementById("cq").value || "").toLowerCase();
+  document.getElementById("convList").innerHTML = CONV
+    .filter(c => !q || (c.name + c.phone).toLowerCase().includes(q))
+    .map(c => `
+      <div class="ib-item ${c.id === active ? "active" : ""}" onclick="open_('${c.id}')">
+        <span class="avatar" style="background:${c.tag === "Team member" ? "var(--brand-600)" : "#8A9793"}">${initials(c.name)}</span>
+        <div class="stack grow">
+          <div class="between"><span class="ib-name">${esc(c.name)}</span><span class="ib-time">${c.last}</span></div>
+          <div class="between"><span class="ib-prev">${esc(c.messages[c.messages.length - 1].body.split("\n")[0]).slice(0, 38)}</span>
+            ${c.unread ? `<span class="unread-pill">${c.unread}</span>` : ""}</div>
+          <span class="tiny muted">${c.tag}${c.lead ? " · " + c.lead : ""}</span>
+        </div>
+      </div>`).join("") || '<div class="empty small">No conversations.</div>';
+}
+
+function open_(id) { active = id; renderList(); renderThread(); }
+
+function renderThread() {
+  const c = CONV.find(x => x.id === active);
+  if (!c) { document.getElementById("thMsgs").innerHTML = '<div class="empty">Pick a conversation</div>'; return; }
+
+  document.getElementById("thHead").innerHTML = `
+    <span class="avatar" style="background:${c.tag === "Team member" ? "var(--brand-600)" : "#8A9793"}">${initials(c.name)}</span>
+    <div class="stack grow"><span class="bold small">${esc(c.name)}</span>
+      <span class="tiny muted num">${c.phone} · ${c.tag}</span></div>
+    <span class="badge ${c.window === "open" ? "badge-good" : "badge-warn"}">${c.window === "open" ? "24 h window open" : "Window closed"}</span>
+    ${isAdmin() ? `<span class="badge badge-outline">${avatar(c.assigned, "avatar-sm")} ${person(c.assigned).name.split(" ")[0]}</span>` : ""}`;
+
+  document.getElementById("thMsgs").innerHTML = c.messages.map(m => {
+    if (m.kind === "system") return `<div class="bubble sys">⚙ ${esc(m.body)}</div>`;
+    return `<div class="bubble ${m.dir}">${esc(m.body)}
+      <div class="bubble-meta">
+        ${m.kind === "template" ? `<span class="badge badge-gold tiny">${m.template}</span>` : ""}
+        ${m.kind === "share" ? `<span class="badge badge-brand tiny">shared link</span>` : ""}
+        ${m.kind === "doc" ? `<span class="badge badge-outline tiny">document</span>` : ""}
+        ${m.by ? esc(m.by) + " ·" : ""} ${m.t} ${m.dir === "out" ? "✓✓" : ""}
+      </div></div>`;
+  }).join("");
+
+  document.getElementById("thComposer").innerHTML = c.window === "open" ? `
+    <div class="row" style="gap:8px">
+      <input class="input" placeholder="Type a message…">
+      <button class="btn" onclick="alert('Demo only.')">Template</button>
+      <button class="btn btn-primary" onclick="alert('Demo only.')">Send</button>
+    </div>
+    <div class="hint" style="margin-top:6px">Free text is allowed — the customer messaged within the last 24 hours.</div>`
+    : `
+    <div class="window-warn">⚠ The 24-hour window closed. Meta only allows a pre-approved template now, so free text is disabled — in the interface <i>and</i> on the server.</div>
+    <div class="row" style="gap:8px">
+      <select class="select"><option>followup_reminder_v1</option><option>property_share_v1</option><option>sitevisit_reminder_v1</option></select>
+      <button class="btn btn-primary" onclick="alert('Demo only.')">Send template</button>
+    </div>`;
+
+  const lead = DEMO.leads.find(l => l.id === c.lead);
+  document.getElementById("thCtx").innerHTML = lead ? `
+    <div class="upper" style="margin-bottom:8px">Linked lead</div>
+    <div class="stack" style="gap:3px">
+      <span class="bold">${esc(lead.name)}</span>
+      <span class="tiny muted num">${lead.id} · ${esc(lead.phone)}</span>
+    </div>
+    <div class="grid" style="gap:8px;margin-top:12px">
+      ${[["Requirement", lead.config + " · " + lead.type], ["Budget", lead.budget], ["Location", lead.locality],
+         ["Source", lead.source], ["Priority", lead.priority], ["Score", lead.score + " / 100"]]
+        .map(([l, v]) => `<div class="between"><span class="tiny muted">${l}</span><span class="small bold">${esc(String(v))}</span></div>`).join("")}
+    </div>
+    <div class="divider"></div>
+    <div class="upper" style="margin-bottom:8px">Stage</div>
+    <span class="badge badge-brand">${(DEMO.stages.find(s => s.key === lead.stage) || {}).label}</span>
+    <div class="divider"></div>
+    <div class="grid" style="gap:7px">
+      <button class="btn btn-sm btn-block" onclick="alert('Demo only.')">Log an activity</button>
+      <button class="btn btn-sm btn-block" onclick="alert('Demo only.')">Share a property</button>
+      <button class="btn btn-sm btn-block" onclick="alert('Demo only.')">Schedule a site visit</button>
+      <button class="btn btn-sm btn-block btn-primary" onclick="alert('Demo only.')">Move stage</button>
+    </div>` : `
+    <div class="upper" style="margin-bottom:8px">No linked lead</div>
+    <p class="small sec">This thread is with a team member, not a customer. Messages in the <span class="num">#LEAD</span> format here create leads automatically.</p>
+    <button class="btn btn-sm btn-block" onclick="showTab('formats')">See the formats</button>`;
+}
+
+/* ---- Log tab ---- */
+document.getElementById("logTbl").innerHTML = `
+  <thead><tr><th>When</th><th>Workflow</th><th>Detail</th><th class="r">Result</th></tr></thead>
+  <tbody>${DEMO.automationLog.map(a => `
+    <tr><td class="small nowrap">${a.t}</td><td class="small bold">${a.wf}</td>
+    <td class="small">${esc(a.detail)}</td>
+    <td class="r"><span class="badge ${a.status === "ok" ? "badge-good" : "badge-warn"}">${a.status}</span></td></tr>`).join("")}</tbody>`;
+
+document.getElementById("wfs").innerHTML = [
+  ["WF-1", "Inbound message → CRM", "428 runs this week"],
+  ["WF-2", "Lead parser (#LEAD, #VISIT, #NOTE)", "31 runs"],
+  ["WF-3", "Outbound send from inbox", "186 runs"],
+  ["WF-4", "Scheduled follow-up reminders", "49 runs"],
+  ["WF-5", "Website enquiry → instant WhatsApp", "22 runs"]
+].map(([id, n, r]) => `
+  <div class="row" style="gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r-md)">
+    <span class="badge badge-brand">${id}</span>
+    <div class="stack grow"><span class="small bold">${n}</span><span class="tiny muted">${r}</span></div>
+    <span class="badge badge-good"><span class="dot"></span>Active</span>
+  </div>`).join("");
+
+document.getElementById("tpls").innerHTML = [
+  "welcome_enquiry_v1", "property_share_v1", "sitevisit_confirm_v1",
+  "sitevisit_reminder_v1", "followup_reminder_v1", "deal_congrats_v1", "agent_welcome_v1"
+].map(t => `<div class="between" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-md)">
+    <span class="num small">${t}</span><span class="badge badge-good">approved</span></div>`).join("");
+
+document.getElementById("cmds").innerHTML = `
+  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+  <tbody>${[
+    ["#LEAD …", "Create or update a lead"],
+    ["#UPDATE LD-2041 stage: site_visit", "Move a lead to another stage"],
+    ["#VISIT LD-2041 tomorrow 4pm PRP-1042", "Schedule a site visit"],
+    ["#NOTE LD-2041 called, not picking", "Log an activity on the lead"],
+    ["#MYLEADS", "Bot replies with your open leads"],
+    ["#TODAY", "Bot replies with today's follow-ups"],
+    ["#HELP", "Format cheat-sheet"]
+  ].map(([c, d]) => `<tr><td class="num small bold">${esc(c)}</td><td class="small">${d}</td></tr>`).join("")}</tbody>`;
+
+document.getElementById("cq").addEventListener("input", renderList);
+renderList(); renderThread();
+</script>
+</body>
+</html>
